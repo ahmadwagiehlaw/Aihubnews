@@ -21,7 +21,7 @@
             apiBlockedBases: {},
             lastApiFailureAt: 0
         };
-        const API_PORT_CANDIDATES = ['3000', '3130'];
+        const API_PORT_CANDIDATES = ['3000', '3130', '3131', '3132'];
 
         const CATEGORY_META = {
             war: { label: 'جيوسياسي', icon: 'fa-earth-africa', tone: 'red' },
@@ -98,6 +98,135 @@
                     published_at: '',
                     scope: 'local',
                     category: 'economy'
+                }
+            ]
+        };
+        const STATIC_GLOBAL_FALLBACK = {
+            war: [
+                {
+                    title: 'Geopolitical Brief: Global Flashpoints',
+                    summary: 'Curated global geopolitical updates from trusted international news sources.',
+                    source: 'Reuters',
+                    source_url: 'https://www.reuters.com/world/',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'war'
+                },
+                {
+                    title: 'World Security Tracker',
+                    summary: 'Continuous coverage for major diplomatic and military developments.',
+                    source: 'BBC',
+                    source_url: 'https://www.bbc.com/news/world',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'war'
+                },
+                {
+                    title: 'International Affairs Snapshot',
+                    summary: 'Quick analysis for cross-border tensions, policy shifts, and alliances.',
+                    source: 'AP',
+                    source_url: 'https://apnews.com/world-news',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'war'
+                }
+            ],
+            local: [
+                {
+                    title: 'Regional Brief: Middle East & North Africa',
+                    summary: 'Fresh regional updates in English from key international publishers.',
+                    source: 'Reuters',
+                    source_url: 'https://www.reuters.com/world/middle-east/',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'local'
+                },
+                {
+                    title: 'Regional Public Affairs Highlights',
+                    summary: 'Policy, services, and social-impact updates across the region.',
+                    source: 'BBC',
+                    source_url: 'https://www.bbc.com/news/world/middle_east',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'local'
+                },
+                {
+                    title: 'MENA Daily Digest',
+                    summary: 'Fast reading format for regional affairs and local market-sensitive events.',
+                    source: 'AP',
+                    source_url: 'https://apnews.com/hub/middle-east',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'local'
+                }
+            ],
+            economy: [
+                {
+                    title: 'Global Macro Economy Monitor',
+                    summary: 'Interest rates, inflation, central banks, and global liquidity updates.',
+                    source: 'Financial Times',
+                    source_url: 'https://www.ft.com/global-economy',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'economy'
+                },
+                {
+                    title: 'Markets & Policy Watch',
+                    summary: 'Major policy actions and market reactions from global financial hubs.',
+                    source: 'Bloomberg',
+                    source_url: 'https://www.bloomberg.com/markets',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'economy'
+                },
+                {
+                    title: 'Rates and Inflation Pulse',
+                    summary: 'A compact view of rates, inflation, and macro forecasts worldwide.',
+                    source: 'Reuters',
+                    source_url: 'https://www.reuters.com/markets/',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'economy'
+                }
+            ],
+            ai: [
+                {
+                    title: 'AI Models & Releases',
+                    summary: 'New model announcements, safety updates, and product capabilities.',
+                    source: 'OpenAI',
+                    source_url: 'https://openai.com/news/',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'ai'
+                },
+                {
+                    title: 'AI Research & Platform News',
+                    summary: 'Industry-level updates from leading AI labs and platform providers.',
+                    source: 'Google AI Blog',
+                    source_url: 'https://blog.google/technology/ai/',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'ai'
+                }
+            ],
+            tech: [
+                {
+                    title: 'Technology Headlines',
+                    summary: 'Daily technology developments, cybersecurity, and infrastructure news.',
+                    source: 'BBC Tech',
+                    source_url: 'https://www.bbc.com/news/technology',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'tech'
+                },
+                {
+                    title: 'Cybersecurity & Infrastructure Watch',
+                    summary: 'Operational and security-focused updates from international sources.',
+                    source: 'NYTimes Tech',
+                    source_url: 'https://www.nytimes.com/section/technology',
+                    published_at: '',
+                    scope: 'global',
+                    category: 'tech'
                 }
             ]
         };
@@ -327,12 +456,10 @@
         function showInstallBanner(mode = 'generic') {
             if (!shouldShowInstallBanner()) return;
             const banner = document.getElementById('install-banner');
+            const overlay = document.getElementById('install-overlay');
             const text = document.getElementById('install-banner-text');
             const installBtn = document.getElementById('install-now-btn');
             if (!banner || !text || !installBtn) return;
-
-            const mobile = window.matchMedia('(max-width: 767px)').matches;
-            banner.style.bottom = mobile ? '74px' : '12px';
 
             if (mode === 'ios') {
                 text.textContent = 'على iPhone: اضغط زر المشاركة في Safari ثم اختر "Add to Home Screen".';
@@ -342,13 +469,16 @@
                 installBtn.textContent = 'تثبيت الآن';
             }
 
+            if (overlay) overlay.classList.remove('hidden');
             banner.classList.remove('hidden');
             APP_STATE.installBannerShown = true;
         }
 
         function hideInstallBanner() {
             const banner = document.getElementById('install-banner');
+            const overlay = document.getElementById('install-overlay');
             if (banner) banner.classList.add('hidden');
+            if (overlay) overlay.classList.add('hidden');
             APP_STATE.installBannerShown = false;
         }
 
@@ -357,6 +487,7 @@
             const laterBtn = document.getElementById('install-later-btn');
             const neverBtn = document.getElementById('install-never-btn');
             const closeBtn = document.getElementById('install-banner-close');
+            const overlay = document.getElementById('install-overlay');
 
             if (installBtn) {
                 installBtn.addEventListener('click', async () => {
@@ -374,6 +505,7 @@
             }
             if (laterBtn) laterBtn.addEventListener('click', hideInstallBanner);
             if (closeBtn) closeBtn.addEventListener('click', hideInstallBanner);
+            if (overlay) overlay.addEventListener('click', hideInstallBanner);
             if (neverBtn) {
                 neverBtn.addEventListener('click', () => {
                     localStorage.setItem(INSTALL_BANNER_DISMISS_KEY, '1');
@@ -984,7 +1116,7 @@
                     const sourceUrl = String(row.link || row.source_url || 'https://news.google.com/').trim();
                     const title = String(row.title || '').trim();
                     const summary = excerptLite(row.description || row.summary || row.title || '', 240);
-                    if (!title || !sourceUrl || summary.length < 20) return null;
+                    if (!title || !sourceUrl || summary.length < 12) return null;
                     return {
                         id: `em_${category}_${scope}_${Date.now()}_${idx}`,
                         category,
@@ -1007,37 +1139,54 @@
                 ar_local: 'https://news.google.com/rss/search?q=أخبار مصر&hl=ar&gl=EG&ceid=EG:ar',
                 ar_war: 'https://news.google.com/rss/search?q=الأخبار الجيوسياسية&hl=ar&gl=EG&ceid=EG:ar',
                 ar_economy: 'https://news.google.com/rss/search?q=اقتصاد مصر أسعار الفائدة&hl=ar&gl=EG&ceid=EG:ar',
-                en_local: 'https://news.google.com/rss/search?q=middle east regional news&hl=en&gl=US&ceid=US:en'
+                en_local: 'https://news.google.com/rss/search?q=middle east regional news&hl=en&gl=US&ceid=US:en',
+                en_war: 'https://news.google.com/rss/search?q=geopolitics+international+conflict&hl=en&gl=US&ceid=US:en',
+                en_economy: 'https://news.google.com/rss/search?q=global+macro+economy+interest+rates+inflation&hl=en&gl=US&ceid=US:en',
+                en_ai: 'https://news.google.com/rss/search?q=artificial+intelligence+model+release&hl=en&gl=US&ceid=US:en',
+                en_tech: 'https://news.google.com/rss/search?q=technology+cybersecurity+global&hl=en&gl=US&ceid=US:en'
             };
 
-            const [arLocalRaw, arWarRaw, arEconomyRaw, enLocalRaw] = await Promise.all([
+            const [arLocalRaw, arWarRaw, arEconomyRaw, enLocalRaw, enWarRaw, enEconomyRaw, enAiRaw, enTechRaw] = await Promise.all([
                 fetchEmergencyFeedItems(feeds.ar_local),
                 fetchEmergencyFeedItems(feeds.ar_war),
                 fetchEmergencyFeedItems(feeds.ar_economy),
-                fetchEmergencyFeedItems(feeds.en_local)
+                fetchEmergencyFeedItems(feeds.en_local),
+                fetchEmergencyFeedItems(feeds.en_war),
+                fetchEmergencyFeedItems(feeds.en_economy),
+                fetchEmergencyFeedItems(feeds.en_ai),
+                fetchEmergencyFeedItems(feeds.en_tech)
             ]);
 
             const arLocalItems = mapEmergencyItems((Array.isArray(arLocalRaw) ? arLocalRaw : []).filter((x) => looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'local', 'local');
             const arWarItems = mapEmergencyItems((Array.isArray(arWarRaw) ? arWarRaw : []).filter((x) => looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'war', 'local');
             const arEconomyItems = mapEmergencyItems((Array.isArray(arEconomyRaw) ? arEconomyRaw : []).filter((x) => looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'economy', 'local');
             const enLocalItems = mapEmergencyItems((Array.isArray(enLocalRaw) ? enLocalRaw : []).filter((x) => !looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'local', 'global');
+            const enWarItems = mapEmergencyItems((Array.isArray(enWarRaw) ? enWarRaw : []).filter((x) => !looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'war', 'global');
+            const enEconomyItems = mapEmergencyItems((Array.isArray(enEconomyRaw) ? enEconomyRaw : []).filter((x) => !looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'economy', 'global');
+            const enAiItems = mapEmergencyItems((Array.isArray(enAiRaw) ? enAiRaw : []).filter((x) => !looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'ai', 'global');
+            const enTechItems = mapEmergencyItems((Array.isArray(enTechRaw) ? enTechRaw : []).filter((x) => !looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'tech', 'global');
 
-            if (!arLocalItems.length && !arWarItems.length && !arEconomyItems.length && !enLocalItems.length) {
+            if (!arLocalItems.length && !arWarItems.length && !arEconomyItems.length && !enLocalItems.length && !enWarItems.length && !enEconomyItems.length && !enAiItems.length && !enTechItems.length) {
                 const staticLocal = mapEmergencyItems(STATIC_LOCAL_FALLBACK.local, 'local', 'local');
                 const staticWar = mapEmergencyItems(STATIC_LOCAL_FALLBACK.war, 'war', 'local');
                 const staticEconomy = mapEmergencyItems(STATIC_LOCAL_FALLBACK.economy, 'economy', 'local');
-                if (!staticLocal.length && !staticWar.length && !staticEconomy.length) return null;
+                const staticGlobalWar = mapEmergencyItems(STATIC_GLOBAL_FALLBACK.war, 'war', 'global');
+                const staticGlobalLocal = mapEmergencyItems(STATIC_GLOBAL_FALLBACK.local, 'local', 'global');
+                const staticGlobalEconomy = mapEmergencyItems(STATIC_GLOBAL_FALLBACK.economy, 'economy', 'global');
+                const staticGlobalAi = mapEmergencyItems(STATIC_GLOBAL_FALLBACK.ai, 'ai', 'global');
+                const staticGlobalTech = mapEmergencyItems(STATIC_GLOBAL_FALLBACK.tech, 'tech', 'global');
+                if (!staticLocal.length && !staticWar.length && !staticEconomy.length && !staticGlobalWar.length && !staticGlobalLocal.length && !staticGlobalEconomy.length) return null;
                 return {
                     news: APP_STATE.latestPayload?.news || { war: [], local: [], economy: [], legal: [], ai: [], tech: [], aihub: [] },
                     news_scopes: {
-                        war: { global: [], local: staticWar },
-                        local: { global: [], local: staticLocal },
-                        economy: { global: [], local: staticEconomy },
-                        ai: { global: [], local: [] },
-                        tech: { global: [], local: [] }
+                        war: { global: staticGlobalWar, local: staticWar },
+                        local: { global: staticGlobalLocal, local: staticLocal },
+                        economy: { global: staticGlobalEconomy, local: staticEconomy },
+                        ai: { global: staticGlobalAi, local: [] },
+                        tech: { global: staticGlobalTech, local: [] }
                     },
                     aihub_sections: APP_STATE.latestPayload?.aihub_sections || { announcements: [], tools: [], community: [], tutorials: [] },
-                    source: 'client-static-local-fallback'
+                    source: 'client-static-fallback'
                 };
             }
 
@@ -1048,19 +1197,25 @@
                 news: fallbackNews,
                 news_scopes: {
                     war: {
-                        global: Array.isArray(fallbackScopes?.war?.global) ? fallbackScopes.war.global : [],
+                        global: enWarItems.length ? enWarItems : (Array.isArray(fallbackScopes?.war?.global) ? fallbackScopes.war.global : mapEmergencyItems(STATIC_GLOBAL_FALLBACK.war, 'war', 'global')),
                         local: arWarItems.length ? arWarItems : (Array.isArray(fallbackScopes?.war?.local) ? fallbackScopes.war.local : [])
                     },
                     local: {
-                        global: enLocalItems.length ? enLocalItems : (Array.isArray(fallbackScopes?.local?.global) ? fallbackScopes.local.global : []),
+                        global: enLocalItems.length ? enLocalItems : (Array.isArray(fallbackScopes?.local?.global) ? fallbackScopes.local.global : mapEmergencyItems(STATIC_GLOBAL_FALLBACK.local, 'local', 'global')),
                         local: arLocalItems.length ? arLocalItems : (Array.isArray(fallbackScopes?.local?.local) ? fallbackScopes.local.local : [])
                     },
                     economy: {
-                        global: Array.isArray(fallbackScopes?.economy?.global) ? fallbackScopes.economy.global : [],
+                        global: enEconomyItems.length ? enEconomyItems : (Array.isArray(fallbackScopes?.economy?.global) ? fallbackScopes.economy.global : mapEmergencyItems(STATIC_GLOBAL_FALLBACK.economy, 'economy', 'global')),
                         local: arEconomyItems.length ? arEconomyItems : (Array.isArray(fallbackScopes?.economy?.local) ? fallbackScopes.economy.local : [])
                     },
-                    ai: fallbackScopes?.ai || { global: [], local: [] },
-                    tech: fallbackScopes?.tech || { global: [], local: [] }
+                    ai: {
+                        global: enAiItems.length ? enAiItems : (Array.isArray(fallbackScopes?.ai?.global) ? fallbackScopes.ai.global : mapEmergencyItems(STATIC_GLOBAL_FALLBACK.ai, 'ai', 'global')),
+                        local: Array.isArray(fallbackScopes?.ai?.local) ? fallbackScopes.ai.local : []
+                    },
+                    tech: {
+                        global: enTechItems.length ? enTechItems : (Array.isArray(fallbackScopes?.tech?.global) ? fallbackScopes.tech.global : mapEmergencyItems(STATIC_GLOBAL_FALLBACK.tech, 'tech', 'global')),
+                        local: Array.isArray(fallbackScopes?.tech?.local) ? fallbackScopes.tech.local : []
+                    }
                 },
                 aihub_sections: APP_STATE.latestPayload?.aihub_sections || { announcements: [], tools: [], community: [], tutorials: [] },
                 source: 'client-emergency-rss'
@@ -1117,6 +1272,12 @@
             return mapped.slice(0, 6);
         }
 
+        function getStaticGlobalFallback(category) {
+            const rows = STATIC_GLOBAL_FALLBACK[category] || [];
+            const mapped = mapEmergencyItems(rows, category, 'global');
+            return mapped.slice(0, 8);
+        }
+
         function buildImmediateFallbackPayload() {
             const baseNews = APP_STATE.latestPayload?.news || { war: [], local: [], economy: [], legal: [], ai: [], tech: [], aihub: [] };
             const baseScopes = APP_STATE.latestPayload?.news_scopes || {};
@@ -1125,22 +1286,28 @@
                 news: baseNews,
                 news_scopes: {
                     war: {
-                        global: Array.isArray(baseScopes?.war?.global) ? baseScopes.war.global : [],
+                        global: Array.isArray(baseScopes?.war?.global) && baseScopes.war.global.length ? baseScopes.war.global : getStaticGlobalFallback('war'),
                         local: getStaticArabicFallback('war')
                     },
                     local: {
-                        global: Array.isArray(baseScopes?.local?.global) ? baseScopes.local.global : [],
+                        global: Array.isArray(baseScopes?.local?.global) && baseScopes.local.global.length ? baseScopes.local.global : getStaticGlobalFallback('local'),
                         local: getStaticArabicFallback('local')
                     },
                     economy: {
-                        global: Array.isArray(baseScopes?.economy?.global) ? baseScopes.economy.global : [],
+                        global: Array.isArray(baseScopes?.economy?.global) && baseScopes.economy.global.length ? baseScopes.economy.global : getStaticGlobalFallback('economy'),
                         local: getStaticArabicFallback('economy')
                     },
-                    ai: baseScopes?.ai || { global: [], local: [] },
-                    tech: baseScopes?.tech || { global: [], local: [] }
+                    ai: {
+                        global: Array.isArray(baseScopes?.ai?.global) && baseScopes.ai.global.length ? baseScopes.ai.global : getStaticGlobalFallback('ai'),
+                        local: Array.isArray(baseScopes?.ai?.local) ? baseScopes.ai.local : []
+                    },
+                    tech: {
+                        global: Array.isArray(baseScopes?.tech?.global) && baseScopes.tech.global.length ? baseScopes.tech.global : getStaticGlobalFallback('tech'),
+                        local: Array.isArray(baseScopes?.tech?.local) ? baseScopes.tech.local : []
+                    }
                 },
                 aihub_sections: APP_STATE.latestPayload?.aihub_sections || { announcements: [], tools: [], community: [], tutorials: [] },
-                source: 'client-static-local-fallback'
+                source: 'client-static-fallback'
             };
         }
 
