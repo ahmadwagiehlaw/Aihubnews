@@ -1,0 +1,10 @@
+{
+  "name": "ai-hub-news-bulletin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart news bulletin with auto-refresh via Gemini API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -67,6 +67,18 @@
             color: white;
             border-color: #ef4444;
         }
+
+        .scope-tab {
+            transition: all 0.25s ease;
+            background: #0f172a;
+            color: #94a3b8;
+            border: 1px solid #334155;
+        }
+        .scope-tab.active[data-scope-tone="emerald"] { background: #065f46; color: #ecfeff; border-color: #10b981; }
+        .scope-tab.active[data-scope-tone="amber"] { background: #78350f; color: #fef3c7; border-color: #f59e0b; }
+        .scope-tab.active[data-scope-tone="violet"] { background: #4c1d95; color: #ede9fe; border-color: #a78bfa; }
+        .scope-tab.active[data-scope-tone="cyan"] { background: #164e63; color: #cffafe; border-color: #22d3ee; }
+        .scope-tab.active[data-scope-tone="sky"] { background: #0c4a6e; color: #e0f2fe; border-color: #38bdf8; }
         
         /* Glassmorphism for floating alerts */
         .glass-alert {
@@ -75,26 +87,94 @@
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(251, 191, 36, 0.3);
         }
+
+        .aihub-spotlight {
+            background:
+                radial-gradient(circle at 15% 20%, rgba(34, 211, 238, 0.22), transparent 45%),
+                radial-gradient(circle at 85% 80%, rgba(251, 191, 36, 0.18), transparent 42%),
+                linear-gradient(135deg, rgba(8, 47, 73, 0.95), rgba(30, 58, 138, 0.82));
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.15), 0 16px 35px rgba(2, 6, 23, 0.45);
+        }
+
+        .admin-modal-scroll {
+            max-height: 78vh;
+            overflow-y: auto;
+        }
+
+        .ticker-wrap {
+            background: linear-gradient(90deg, #0b1220 0%, #111c32 100%);
+            border-bottom: 1px solid rgba(251, 191, 36, 0.4);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .ticker-track {
+            display: inline-flex;
+            gap: 2rem;
+            align-items: center;
+            padding: 0.55rem 0;
+            animation: tickerScroll 95s linear infinite;
+            min-width: 100%;
+        }
+        .ticker-track:hover { animation-play-state: paused; }
+
+        .ticker-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            color: #e2e8f0;
+            font-size: 12px;
+        }
+
+        @keyframes tickerScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .aihub-sub-tab[data-tone="announcements"].active { background: #0891b2; border-color: #22d3ee; }
+        .aihub-sub-tab[data-tone="tools"].active { background: #2563eb; border-color: #60a5fa; }
+        .aihub-sub-tab[data-tone="community"].active { background: #0d9488; border-color: #2dd4bf; }
+        .aihub-sub-tab[data-tone="tutorials"].active { background: #7c3aed; border-color: #a78bfa; }
+
+        .view-mode-btn {
+            font-size: 11px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #cbd5e1;
+            border-radius: 9999px;
+            padding: 3px 10px;
+            transition: all .2s ease;
+        }
+        .view-mode-btn.active {
+            background: #0ea5e9;
+            border-color: #38bdf8;
+            color: #ecfeff;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
+    <div class="ticker-wrap sticky top-0 z-[60]">
+        <div id="news-ticker-track" class="ticker-track">
+            <span class="ticker-chip"><i class="fas fa-stream text-amber-400"></i> جاري تحميل الشريط الإخباري...</span>
+        </div>
+    </div>
+
     <!-- Header Section -->
-    <header class="bg-slate-800 border-b-4 border-amber-600 sticky top-0 z-50 shadow-xl">
+    <header class="bg-slate-800 border-b-4 border-amber-600 sticky top-8 z-50 shadow-xl">
         <div class="max-w-7xl mx-auto px-4 py-3">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 
                 <!-- Logo & Branding -->
                 <div class="flex items-center gap-4 w-full md:w-auto">
-                    <div class="bg-white p-1 rounded-full shadow-lg h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-amber-500">
+                    <div class="h-24 md:h-28 flex-shrink-0 flex items-center justify-center">
                         <!-- Updated Logo Path -->
-                        <img src="logo.png" alt="شعار قضاة الذكاء الاصطناعي" class="h-full w-full object-contain" onerror="this.style.display='none'; document.getElementById('fallback-icon').style.display='block';">
-                        <i id="fallback-icon" class="fas fa-balance-scale text-amber-600 text-3xl hidden"></i>
+                        <img src="logo.png" alt="شعار قضاة الذكاء الاصطناعي" class="h-full w-auto max-w-[170px] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.35)]" onerror="this.style.display='none';">
                     </div>
                     <div class="flex-grow">
                         <div class="flex items-center gap-2 mb-1">
                             <h1 class="text-xl md:text-2xl font-bold tracking-wide text-amber-500">نشرة الأخبار الذكية</h1>
-                            <div class="w-2.5 h-2.5 bg-red-500 rounded-full pulse-live shadow-[0_0_8px_#ef4444]"></div>
                         </div>
                         <p class="text-xs md:text-sm text-slate-300 font-medium">برعاية: قضاة الذكاء الاصطناعي (AI HUB) - جروب لتبادل الخبرات</p>
                     </div>
@@ -106,152 +186,101 @@
                         <i class="fas fa-satellite-dish fa-spin-pulse text-xs"></i> <span>بث مباشر لحظي</span>
                     </div>
                     <div class="text-xs text-slate-400 font-mono" id="real-time-clock">1 مارس 2026 - 03:55 صباحاً</div>
+                    <button id="open-admin-panel" class="text-xs bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1 rounded-md transition-colors">
+                        دخول الأدمن
+                    </button>
+                    <div class="flex items-center gap-1">
+                        <span class="text-[11px] text-slate-400">العرض:</span>
+                        <button id="view-cards-btn" class="view-mode-btn active">بطاقات</button>
+                        <button id="view-timeline-btn" class="view-mode-btn">Timeline</button>
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- Main Navigation Tabs (Scrollable on mobile) -->
         <nav class="max-w-7xl mx-auto flex overflow-x-auto hide-scroll bg-slate-900/80">
-            <button onclick="switchMainTab('war')" id="main-btn-war" class="main-tab active flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
-                <i class="fas fa-fire-alt text-lg"></i> أخبار الحرب
+            <button onclick="switchMainTab('arabic')" id="main-btn-arabic" class="main-tab active flex-1 py-3 px-4 min-w-[130px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-sky-300 hover:text-amber-300">
+                <i class="fas fa-language text-lg"></i> العربي والمحلي
             </button>
-            <button onclick="switchMainTab('economy')" id="main-btn-economy" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
-                <i class="fas fa-chart-line text-lg"></i> الاقتصاد
+            <button onclick="switchMainTab('global')" id="main-btn-global" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-300">
+                <i class="fas fa-globe text-lg"></i> الأخبار العالمية
             </button>
-            <button onclick="switchMainTab('legal')" id="main-btn-legal" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
+            <button onclick="switchMainTab('legal')" id="main-btn-legal" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-300">
                 <i class="fas fa-gavel text-lg"></i> القانون والقضاء
             </button>
-            <button onclick="switchMainTab('ai')" id="main-btn-ai" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
-                <i class="fas fa-brain text-lg"></i> الذكاء الصناعي
-            </button>
-            <button onclick="switchMainTab('tech')" id="main-btn-tech" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
-                <i class="fas fa-microchip text-lg"></i> التقنية
+            <button onclick="switchMainTab('techai')" id="main-btn-techai" class="main-tab flex-1 py-3 px-4 min-w-[140px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-300">
+                <i class="fas fa-microchip text-lg"></i> التقنية والذكاء الصناعي
             </button>
         </nav>
     </header>
 
     <!-- Main Content Area -->
     <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-6 mb-10">
-
         <!-- ========================================== -->
-        <!-- 1. WAR NEWS SECTION (Contains Sub-Tabs) -->
+        <!-- 1. GEOPOLITICAL NEWS SECTION (Contains Sub-Tabs) -->
         <!-- ========================================== -->
-        <section id="war-section" class="main-content-section animate-fade-in block">
-            
-            <!-- Sub Navigation for War News -->
-            <div class="flex overflow-x-auto hide-scroll gap-2 mb-6 pb-2 border-b border-slate-700">
-                <button onclick="switchSubTab('war-timeline')" id="sub-btn-war-timeline" class="sub-tab active px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2">
-                    <i class="fas fa-clock"></i> تسلسل الأحداث
-                </button>
-                <button onclick="switchSubTab('war-israel')" id="sub-btn-war-israel" class="sub-tab text-slate-300 px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 hover:bg-slate-700">
-                    <i class="fas fa-search-location"></i> رصد الداخل الإسرائيلي
-                </button>
-                <button onclick="switchSubTab('war-casualties')" id="sub-btn-war-casualties" class="sub-tab text-slate-300 px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 hover:bg-slate-700">
-                    <i class="fas fa-clipboard-list"></i> تقرير الخسائر الشامل
-                </button>
-            </div>
-
-            <!-- War Sub-Content: Timeline -->
-            <div id="war-timeline" class="sub-content-section block">
-                <div class="relative border-r-2 border-slate-700 pr-6 space-y-6 ml-2 md:ml-4">
-                    <!-- Event 1 -->
-                    <div class="relative group">
-                        <div class="absolute -right-[31px] top-1 w-4 h-4 rounded-full bg-red-600 border-4 border-slate-900 pulse-live"></div>
-                        <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-red-900/50 hover:border-red-500 transition-all">
-                            <div class="flex flex-wrap justify-between items-start mb-2 gap-2">
-                                <h3 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
-                                    <span class="bg-red-600 text-white text-xs px-2 py-0.5 rounded">عاجل</span>
-                                    الموجة الثانية: هجمات بحرية ومسيرات
-                                </h3>
-                                <span class="text-xs bg-slate-700 px-2 py-1 rounded text-amber-400 font-mono"><i class="far fa-clock"></i> 01:00 صباحاً</span>
-                            </div>
-                            <p class="text-slate-300 mb-3 text-sm leading-relaxed">قوات التحالف (أمريكا وبريطانيا) تشن ضربات مركزة على بطاريات صواريخ ساحلية إيرانية. وإيران ترد بإطلاق أسراب من مسيرات "شاهد" نحو إسرائيل وقواعد بالمنطقة.</p>
-                            <div class="text-xs text-slate-400 flex items-center gap-2 border-t border-slate-700 pt-2">
-                                <i class="fas fa-check-circle text-green-500"></i> المصادر: CNN, NYT (مؤكد 100%)
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Event 2 -->
-                    <div class="relative group">
-                        <div class="absolute -right-[31px] top-1 w-4 h-4 rounded-full bg-orange-500 border-4 border-slate-900"></div>
-                        <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-slate-700">
-                            <div class="flex flex-wrap justify-between items-start mb-2 gap-2">
-                                <h3 class="text-base md:text-lg font-bold text-white">إصابات في البنية التحتية الإسرائيلية</h3>
-                                <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono"><i class="far fa-clock"></i> منتصف الليل</span>
-                            </div>
-                            <p class="text-slate-300 mb-3 text-sm leading-relaxed">نجاح صواريخ إيرانية في اختراق القبة الحديدية، وسقوط مباشر في قاعدة "نيفاتيم" بصحراء النقب ومبنى وسط إسرائيل.</p>
-                        </div>
-                    </div>
+        <section id="global-section" class="main-content-section animate-fade-in hidden">
+            <div class="bg-slate-900/70 border border-amber-800/50 rounded-2xl p-5 mb-6">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <h2 class="text-lg md:text-xl font-bold text-amber-200 flex items-center gap-2">
+                        <i class="fas fa-globe"></i> الأخبار العالمية (English Sources)
+                    </h2>
+                    <span class="text-[10px] text-slate-400">Reuters / AP / BBC / NYTimes / FT ...</span>
+                </div>
+                <div class="flex overflow-x-auto hide-scroll gap-2 pb-2 border-b border-amber-900/60">
+                    <button onclick="switchGlobalSubTab('global-war')" id="sub-btn-global-war" class="sub-tab active px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2">
+                        <i class="fas fa-earth-africa"></i> جيوسياسي
+                    </button>
+                    <button onclick="switchGlobalSubTab('global-economy')" id="sub-btn-global-economy" class="sub-tab text-slate-300 px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 hover:bg-slate-700">
+                        <i class="fas fa-chart-line"></i> اقتصادي
+                    </button>
+                    <button onclick="switchGlobalSubTab('global-local')" id="sub-btn-global-local" class="sub-tab text-slate-300 px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 hover:bg-slate-700">
+                        <i class="fas fa-map"></i> محلي/إقليمي
+                    </button>
                 </div>
             </div>
 
-            <!-- War Sub-Content: Israel Tracker -->
-            <div id="war-israel" class="sub-content-section hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <!-- Card 1 -->
-                    <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-md">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-10 h-10 rounded-full bg-orange-900/50 flex items-center justify-center text-orange-500 text-lg"><i class="fas fa-plane-slash"></i></div>
-                            <div>
-                                <h3 class="font-bold text-base">شلل الطيران والنقل</h3>
-                                <p class="text-[10px] text-slate-400">Bloomberg, Reuters</p>
-                            </div>
-                        </div>
-                        <ul class="space-y-2 text-sm text-slate-300">
-                            <li class="flex items-start gap-2"><i class="fas fa-times-circle text-red-500 mt-1"></i> إغلاق كامل لمطار بن غوريون وتحويل الرحلات.</li>
-                            <li class="flex items-start gap-2"><i class="fas fa-subway text-slate-400 mt-1"></i> توقف تام لخدمات القطارات بين المدن.</li>
-                        </ul>
-                    </div>
-                    <!-- Card 2 -->
-                    <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-md">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="w-10 h-10 rounded-full bg-yellow-900/50 flex items-center justify-center text-yellow-500 text-lg"><i class="fas fa-running"></i></div>
-                            <div>
-                                <h3 class="font-bold text-base">البنية التحتية والهلع</h3>
-                                <p class="text-[10px] text-slate-400">The Guardian, AP</p>
-                            </div>
-                        </div>
-                        <ul class="space-y-2 text-sm text-slate-300">
-                            <li class="flex items-start gap-2"><i class="fas fa-plug text-red-400 mt-1"></i> انقطاعات كهرباء بوسط إسرائيل نتيجة الشظايا.</li>
-                            <li class="flex items-start gap-2"><i class="fas fa-shield-alt text-orange-400 mt-1"></i> مكوث مئات الآلاف في الملاجئ ليلاً.</li>
-                        </ul>
-                    </div>
+            <div id="global-war" class="global-content-section block">
+                <div id="dynamic-global-war-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+            <div id="global-economy" class="global-content-section hidden">
+                <div id="dynamic-global-economy-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+            <div id="global-local" class="global-content-section hidden">
+                <div id="dynamic-global-local-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+        </section>
+
+        <section id="arabic-section" class="main-content-section hidden animate-fade-in">
+            <div class="bg-slate-900/70 border border-sky-800/50 rounded-2xl p-5 mb-6">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <h2 class="text-lg md:text-xl font-bold text-sky-200 flex items-center gap-2">
+                        <i class="fas fa-language"></i> تبويب الأخبار العربية والمحلية
+                    </h2>
+                    <span class="text-[10px] text-slate-400">مختصر Feed: عنوان + صورة + مصدر</span>
+                </div>
+                <div class="flex overflow-x-auto hide-scroll gap-2 pb-2 border-b border-sky-900/60">
+                    <button onclick="switchArabicSubTab('arabic-local')" id="sub-btn-arabic-local" class="sub-tab active px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2">
+                        <i class="fas fa-house"></i> محلي عام
+                    </button>
+                    <button onclick="switchArabicSubTab('arabic-war')" id="sub-btn-arabic-war" class="sub-tab text-slate-300 px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 hover:bg-slate-700">
+                        <i class="fas fa-earth-africa"></i> جيوسياسي
+                    </button>
+                    <button onclick="switchArabicSubTab('arabic-economy')" id="sub-btn-arabic-economy" class="sub-tab text-slate-300 px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 hover:bg-slate-700">
+                        <i class="fas fa-chart-line"></i> اقتصاد
+                    </button>
                 </div>
             </div>
 
-            <!-- War Sub-Content: Casualties Comprehensive -->
-            <div id="war-casualties" class="sub-content-section hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Iran -->
-                    <div class="bg-slate-800 rounded-xl p-5 border-t-4 border-red-600 shadow-lg relative">
-                        <h3 class="font-bold text-lg text-slate-200 mb-3 flex items-center gap-2"><i class="flag-icon fas fa-map-marker-alt text-red-500"></i> إيران</h3>
-                        <div class="flex justify-between items-end border-b border-slate-700 pb-3 mb-3">
-                            <div><p class="text-3xl font-bold text-red-500">328+</p><p class="text-xs text-slate-400">قتيل مدني/عسكري</p></div>
-                            <div class="text-left"><p class="text-2xl font-bold text-orange-400">1,250+</p><p class="text-xs text-slate-400">مصاب</p></div>
-                        </div>
-                        <p class="text-xs text-slate-300">تدمير واسع في بطاريات الصواريخ الساحلية ومقار قيادية بطهران وبوشهر. (المصدر: الهلال الأحمر عبر Reuters)</p>
-                    </div>
-
-                    <!-- Israel -->
-                    <div class="bg-slate-800 rounded-xl p-5 border-t-4 border-blue-500 shadow-lg relative">
-                        <h3 class="font-bold text-lg text-slate-200 mb-3 flex items-center gap-2"><i class="fas fa-star-of-david text-blue-400"></i> إسرائيل</h3>
-                        <div class="flex justify-between items-end border-b border-slate-700 pb-3 mb-3">
-                            <div><p class="text-3xl font-bold text-blue-400">3</p><p class="text-xs text-slate-400">قتلى (سقوط مباشر)</p></div>
-                            <div class="text-left"><p class="text-2xl font-bold text-red-400">165</p><p class="text-xs text-slate-400">مصاب (هلع/شظايا)</p></div>
-                        </div>
-                        <p class="text-xs text-slate-300">أضرار في مدرجات قاعدتين جويتين بالنقب، ومبنى سكني وسط البلاد. (المصدر: CBS, NYT)</p>
-                    </div>
-
-                    <!-- US Bases & Fleet -->
-                    <div class="bg-slate-800 rounded-xl p-5 border-t-4 border-green-500 shadow-lg relative">
-                        <h3 class="font-bold text-lg text-slate-200 mb-3 flex items-center gap-2"><i class="fas fa-shield-alt text-green-400"></i> القواعد الأمريكية والأسطول</h3>
-                        <div class="flex justify-between items-end border-b border-slate-700 pb-3 mb-3">
-                            <div><p class="text-3xl font-bold text-slate-300">0</p><p class="text-xs text-slate-400">قتلى أمريكيين</p></div>
-                            <div class="text-left"><p class="text-2xl font-bold text-yellow-500">12</p><p class="text-xs text-slate-400">إصابة (ارتجاج دماغي)</p></div>
-                        </div>
-                        <p class="text-xs text-slate-300"><strong>الأسطول الخامس:</strong> حالة استنفار قصوى. اعتراض ناجح لـ 14 مسيرة فوق البحر الأحمر والخليج دون إصابة أي قطع بحرية. أضرار طفيفة بقاعدة في أربيل. (المصدر: CENTCOM)</p>
-                    </div>
-                </div>
+            <div id="arabic-local" class="arabic-content-section block">
+                <div id="dynamic-arabic-local-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+            <div id="arabic-war" class="arabic-content-section hidden">
+                <div id="dynamic-arabic-war-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+            <div id="arabic-economy" class="arabic-content-section hidden">
+                <div id="dynamic-arabic-economy-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
             </div>
         </section>
 
@@ -259,55 +288,44 @@
         <!-- 2. ECONOMY SECTION -->
         <!-- ========================================== -->
         <section id="economy-section" class="main-content-section hidden animate-fade-in">
-            
-            <!-- INVESTMENT WARNING BOX (Personalized) -->
-            <div class="glass-alert rounded-xl p-5 mb-8 border-l-4 border-l-amber-500 relative overflow-hidden">
-                <div class="absolute -right-4 -top-4 text-7xl text-amber-500/10"><i class="fas fa-exclamation-triangle"></i></div>
-                <h3 class="text-xl font-bold text-amber-400 flex items-center gap-2 mb-3 relative z-10">
-                    <i class="fas fa-bell animate-bounce"></i> تنبيه استثماري هام وعاجل (خاص بالمحفظة)
-                </h3>
-                <div class="text-sm md:text-base text-slate-200 leading-relaxed relative z-10 space-y-3">
-                    <p>في ظل الانهيارات العنيفة للأسواق اليوم بسبب الحرب، <strong>أذكرك بالقاعدة الذهبية الصارمة:</strong></p>
-                    <p class="bg-red-900/40 p-3 rounded-lg border border-red-500/30 text-red-200 font-bold">
-                        🚫 لا تتجاوز نسبة أي سهم أو قطاع 25% من إجمالي قيمة محفظتك! (مثال: إذا كانت محفظتك 400 ألف جنيه، يجب ألا يتخطى أي سهم 100 ألف جنيه تحت أي ظرف).
-                    </p>
-                    <p class="text-slate-300 text-sm">
-                        <i class="fas fa-history text-amber-500"></i> تذكر الألم والخسارة النفسية والمادية عندما ركزت محفظتك سابقاً في سهم واحد أو اثنين فقط مثل <strong>(مصر للألمونيوم)</strong> أو <strong>(أبو قير للأسمدة)</strong>. التركيز يفوت عليك فرص صعود المؤشرات وقطاعات أخرى، ويعرضك لانهيار قاسي في أوقات الأزمات الجيوسياسية. نوّع محفظتك فوراً والزم الهدوء.
-                    </p>
+            <div class="flex overflow-x-auto hide-scroll gap-2 mb-5 pb-2 border-b border-emerald-900/50">
+                <button onclick="switchScopeTab('economy','global')" id="scope-btn-economy-global" data-scope-tone="emerald" class="scope-tab active px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2">
+                    <i class="fas fa-globe"></i> أخبار عالمية
+                </button>
+                <button onclick="switchScopeTab('economy','local')" id="scope-btn-economy-local" data-scope-tone="sky" class="scope-tab px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2">
+                    <i class="fas fa-flag"></i> أخبار محلية عربية
+                </button>
+            </div>
+
+            <div id="economy-scope-global" class="scope-panel block" data-scope-category="economy">
+                <div class="mb-6 bg-slate-900/60 border border-emerald-800/50 rounded-xl p-4">
+                    <h3 class="text-sm md:text-base font-bold text-emerald-300 mb-3 flex items-center gap-2">
+                        <i class="fas fa-chart-line"></i> الاقتصاد العالمي (تلقائي + يدوي)
+                    </h3>
+                    <div id="dynamic-economy-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+                </div>
+
+                <div class="bg-slate-900/60 border border-emerald-800/50 rounded-xl p-5 mb-6">
+                    <h2 class="text-xl font-bold mb-3 text-emerald-300 border-r-4 border-emerald-500 pr-3">الاقتصاد العالمي والاقتصاد الكلي</h2>
+                    <p class="text-sm text-slate-300 leading-relaxed mb-4">هذا القسم عام للمهتمين بالاقتصاد الكلي، الصناديق، السيولة العالمية، أسعار الفائدة، والعوامل المؤثرة على الأسواق الدولية دون أي إشارات لمحافظ شخصية.</p>
+                    <div id="macro-indicators-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"></div>
+                    <p id="macro-indicators-meta" class="text-[11px] text-slate-400 mt-3">جاري تحميل المؤشرات من المصادر الحقيقية...</p>
+                </div>
+
+                <div class="bg-slate-900/60 border border-emerald-900/40 rounded-xl p-4">
+                    <h3 class="text-sm md:text-base font-bold text-emerald-300 mb-3 flex items-center gap-2">
+                        <i class="fas fa-globe"></i> تحليل الاقتصاد الكلي والأخبار المؤثرة
+                    </h3>
+                    <div id="dynamic-economy-analysis-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
                 </div>
             </div>
 
-            <h2 class="text-xl font-bold mb-5 text-slate-200 border-r-4 border-green-500 pr-3">مؤشرات الأسواق اللحظية</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
-                    <p class="text-slate-400 text-xs mb-1">النفط (برنت)</p>
-                    <p class="text-xl md:text-2xl font-bold text-green-400 flex justify-center items-center gap-1"><i class="fas fa-caret-up"></i> $94.50</p>
-                    <p class="text-[10px] text-green-500">+7.2%</p>
-                </div>
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
-                    <p class="text-slate-400 text-xs mb-1">الذهب (أونصة)</p>
-                    <p class="text-xl md:text-2xl font-bold text-green-400 flex justify-center items-center gap-1"><i class="fas fa-caret-up"></i> $2,450</p>
-                    <p class="text-[10px] text-green-500">+3.8%</p>
-                </div>
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
-                    <p class="text-slate-400 text-xs mb-1">مؤشر S&P 500 (عقود)</p>
-                    <p class="text-xl md:text-2xl font-bold text-red-500 flex justify-center items-center gap-1"><i class="fas fa-caret-down"></i> 4,920</p>
-                    <p class="text-[10px] text-red-500">-4.1%</p>
-                </div>
-                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
-                    <p class="text-slate-400 text-xs mb-1">البورصة المصرية (EGX30)</p>
-                    <p class="text-xl md:text-2xl font-bold text-red-500 flex justify-center items-center gap-1"><i class="fas fa-caret-down"></i> إيقاف</p>
-                    <p class="text-[10px] text-slate-400">تراجع حاد بالافتتاح</p>
-                </div>
-            </div>
-
-            <div class="space-y-4">
-                <div class="bg-slate-800 rounded-lg p-4 border-r-4 border-red-500 shadow-sm flex flex-col md:flex-row gap-4 items-start">
-                    <div class="bg-slate-700 p-2 rounded text-slate-300 text-xs font-mono min-w-[70px] text-center">02:30 ص</div>
-                    <div>
-                        <h4 class="font-bold text-white mb-1">هروب جماعي للملاذات الآمنة</h4>
-                        <p class="text-sm text-slate-400">صناديق الاستثمار العالمية تسيل أصولها بالأسواق الناشئة وتوجه مليارات الدولارات نحو الذهب والسندات الأمريكية وسط مخاوف من إغلاق مضيق هرمز.</p>
-                    </div>
+            <div id="economy-scope-local" class="scope-panel hidden" data-scope-category="economy">
+                <div class="mb-6 bg-slate-900/60 border border-sky-800/50 rounded-xl p-4">
+                    <h3 class="text-sm md:text-base font-bold text-sky-300 mb-3 flex items-center gap-2">
+                        <i class="fas fa-flag"></i> الاقتصاد المحلي العربي
+                    </h3>
+                    <div id="dynamic-economy-local-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
                 </div>
             </div>
         </section>
@@ -316,64 +334,44 @@
         <!-- 3. LEGAL NEWS SECTION (Egypt) -->
         <!-- ========================================== -->
         <section id="legal-section" class="main-content-section hidden animate-fade-in">
-            <h2 class="text-xl font-bold mb-6 text-slate-200 border-r-4 border-slate-400 pr-3">أحدث التطورات: القانون والقضاء المصري</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-amber-500/50 transition-colors">
-                    <div class="flex justify-between items-start mb-3">
-                        <span class="bg-amber-900/50 text-amber-400 text-xs px-2 py-1 rounded border border-amber-700/50"><i class="fas fa-gavel"></i> محكمة النقض</span>
-                        <span class="text-xs text-slate-400 font-mono">أمس 14:00</span>
-                    </div>
-                    <h3 class="font-bold text-lg text-white mb-2">إرساء مبدأ جديد حول الأدلة الرقمية الجنائية</h3>
-                    <p class="text-sm text-slate-300 leading-relaxed mb-4">أصدرت محكمة النقض حكماً تاريخياً يعتد برسائل "واتساب" والمقاطع الصوتية المشفرة كدليل إدانة كامل متى ثبتت صحتها فنياً عبر إدارة المساعدات الفنية بوزارة الداخلية، دون الحاجة لشهود إثبات تقليديين.</p>
-                    <button class="text-amber-500 text-xs font-bold hover:underline">قراءة حيثيات الحكم <i class="fas fa-arrow-left ml-1"></i></button>
+            <div class="mb-6 bg-slate-900/70 border border-amber-800/50 rounded-2xl p-5">
+                <div class="flex items-center justify-between gap-3 mb-2">
+                    <h2 class="text-lg md:text-xl font-bold text-amber-200 flex items-center gap-2">
+                        <i class="fas fa-gavel"></i> أخبار القانون والقضاء
+                    </h2>
+                    <span class="text-[10px] text-slate-400">إضافة يدوية من الأدمن فقط</span>
                 </div>
-
-                <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-amber-500/50 transition-colors">
-                    <div class="flex justify-between items-start mb-3">
-                        <span class="bg-blue-900/50 text-blue-400 text-xs px-2 py-1 rounded border border-blue-700/50"><i class="fas fa-landmark"></i> مجلس الدولة</span>
-                        <span class="text-xs text-slate-400 font-mono">أمس 11:30</span>
-                    </div>
-                    <h3 class="font-bold text-lg text-white mb-2">إلزام الجهات الإدارية بالتقاضي الإلكتروني</h3>
-                    <p class="text-sm text-slate-300 leading-relaxed mb-4">أصدر رئيس مجلس الدولة قراراً تنظيمياً ببدء المرحلة الثانية من التقاضي عن بعد، مُلزماً الهيئات الحكومية بتقديم مذكرات الدفاع والمستندات إلكترونياً حصراً أمام محاكم القضاء الإداري اعتباراً من الشهر القادم.</p>
-                    <button class="text-amber-500 text-xs font-bold hover:underline">تفاصيل القرار الإداري <i class="fas fa-arrow-left ml-1"></i></button>
-                </div>
+                <p class="text-xs text-slate-300">هذا القسم لا يعتمد على تغذية تلقائية لتجنب الضوضاء، ويُدار بالكامل من لوحة الأدمن.</p>
             </div>
+            <div id="dynamic-legal-manual-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
         </section>
 
         <!-- ========================================== -->
-        <!-- 4. AI NEWS SECTION -->
+        <!-- 4. TECH + AI SECTION -->
         <!-- ========================================== -->
-        <section id="ai-section" class="main-content-section hidden animate-fade-in">
-            <h2 class="text-xl font-bold mb-6 text-slate-200 border-r-4 border-purple-500 pr-3">مستجدات الذكاء الاصطناعي</h2>
-            
-            <div class="space-y-4">
-                <!-- AI Event 1 -->
-                <div class="bg-slate-800 rounded-lg p-5 border-l-4 border-l-purple-500 shadow flex flex-col md:flex-row gap-5 items-start">
-                    <div class="w-16 h-16 rounded-lg bg-purple-900/30 flex items-center justify-center text-purple-400 text-2xl flex-shrink-0">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <h3 class="font-bold text-lg text-white">إطلاق نماذج قانونية متخصصة من "AI HUB"</h3>
-                            <span class="bg-red-500/20 text-red-400 text-[10px] px-2 py-0.5 rounded">حصري للجروب</span>
-                        </div>
-                        <p class="text-sm text-slate-300 leading-relaxed mb-2">أعلن جروب "قضاة الذكاء الاصطناعي" عن توفير أدلة استرشادية جديدة لاستخدام النماذج اللغوية (LLMs) في صياغة العقود التجارية واستخلاص الثغرات القانونية من محاضر الجلسات بدقة تصل إلى 94%.</p>
-                        <span class="text-xs text-slate-500"><i class="far fa-clock"></i> منذ ساعتين</span>
-                    </div>
+        <section id="techai-section" class="main-content-section hidden animate-fade-in">
+            <div class="bg-slate-900/70 border border-cyan-800/50 rounded-2xl p-5 mb-6">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <h2 class="text-lg md:text-xl font-bold text-cyan-200 flex items-center gap-2">
+                        <i class="fas fa-microchip"></i> التقنية والذكاء الصناعي (English Feed)
+                    </h2>
+                    <span class="text-[10px] text-slate-400">مصادر عالمية متخصصة وسريعة</span>
                 </div>
+                <div class="flex overflow-x-auto hide-scroll gap-2 pb-2 border-b border-cyan-900/60">
+                    <button onclick="switchTechAiSubTab('techai-ai')" id="sub-btn-techai-ai" class="sub-tab active px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2">
+                        <i class="fas fa-brain"></i> AI
+                    </button>
+                    <button onclick="switchTechAiSubTab('techai-tech')" id="sub-btn-techai-tech" class="sub-tab text-slate-300 px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 hover:bg-slate-700">
+                        <i class="fas fa-microchip"></i> Technology
+                    </button>
+                </div>
+            </div>
 
-                <!-- AI Event 2 -->
-                <div class="bg-slate-800 rounded-lg p-5 border-l-4 border-l-blue-500 shadow flex flex-col md:flex-row gap-5 items-start">
-                    <div class="w-16 h-16 rounded-lg bg-blue-900/30 flex items-center justify-center text-blue-400 text-2xl flex-shrink-0">
-                        <i class="fas fa-brain"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-lg text-white mb-1">تحديث جذري في قدرات "Gemini" للتحليل المالي</h3>
-                        <p class="text-sm text-slate-300 leading-relaxed mb-2">جوجل تطلق تحديثاً يتيح للذكاء الاصطناعي ربط الأخبار الجيوسياسية اللحظية (كالحرب الحالية) بتحليل بيانات الأسهم في أسواق الشرق الأوسط وتقديم تقارير إدارة مخاطر فورية.</p>
-                        <span class="text-xs text-slate-500"><i class="far fa-clock"></i> أمس</span>
-                    </div>
-                </div>
+            <div id="techai-ai" class="techai-content-section block">
+                <div id="dynamic-techai-ai-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+            <div id="techai-tech" class="techai-content-section hidden">
+                <div id="dynamic-techai-tech-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
             </div>
         </section>
 
@@ -382,25 +380,77 @@
         <!-- ========================================== -->
         <section id="tech-section" class="main-content-section hidden animate-fade-in">
             <h2 class="text-xl font-bold mb-6 text-slate-200 border-r-4 border-cyan-500 pr-3">أخبار التقنية والأمن السيبراني</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col items-center text-center">
-                    <i class="fas fa-satellite text-4xl text-cyan-400 mb-3"></i>
-                    <h3 class="font-bold text-white mb-2">اضطراب Starlink</h3>
-                    <p class="text-xs text-slate-400">تقارير عن تشويش واسع النطاق على إشارات الإنترنت الفضائي في منطقة الشرق الأوسط تزامناً مع العمليات العسكرية الجوية.</p>
-                </div>
-                
-                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col items-center text-center">
-                    <i class="fas fa-shield-virus text-4xl text-red-400 mb-3"></i>
-                    <h3 class="font-bold text-white mb-2">حرب سيبرانية موازية</h3>
-                    <p class="text-xs text-slate-400">مجموعات قرصنة مدعومة من دول تستهدف البنية التحتية للمستشفيات وشبكات الكهرباء في كل من إسرائيل وإيران منذ الفجر.</p>
-                </div>
+            <div class="flex overflow-x-auto hide-scroll gap-2 mb-5 pb-2 border-b border-cyan-900/50">
+                <button onclick="switchScopeTab('tech','global')" id="scope-btn-tech-global" data-scope-tone="cyan" class="scope-tab active px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2">
+                    <i class="fas fa-globe"></i> أخبار عالمية
+                </button>
+                <button onclick="switchScopeTab('tech','local')" id="scope-btn-tech-local" data-scope-tone="sky" class="scope-tab px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2">
+                    <i class="fas fa-flag"></i> أخبار محلية عربية
+                </button>
+            </div>
 
-                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col items-center text-center">
-                    <i class="fas fa-mobile-alt text-4xl text-slate-300 mb-3"></i>
-                    <h3 class="font-bold text-white mb-2">تحديثات أمنية طارئة</h3>
-                    <p class="text-xs text-slate-400">آبل وجوجل تدفعان بتحديثات أمنية "Zero-day" لهواتف المستخدمين بالمنطقة لسد ثغرات تُستخدم في برمجيات التجسس العسكري.</p>
+            <div id="tech-scope-global" class="scope-panel block" data-scope-category="tech">
+                <div class="mb-6 bg-slate-900/60 border border-cyan-800/50 rounded-xl p-4">
+                    <h3 class="text-sm md:text-base font-bold text-cyan-300 mb-3 flex items-center gap-2">
+                        <i class="fas fa-microchip"></i> أخبار التقنية العالمية
+                    </h3>
+                    <div id="dynamic-tech-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
                 </div>
+            </div>
+            <div id="tech-scope-local" class="scope-panel hidden" data-scope-category="tech">
+                <div class="mb-6 bg-slate-900/60 border border-sky-800/50 rounded-xl p-4">
+                    <h3 class="text-sm md:text-base font-bold text-sky-300 mb-3 flex items-center gap-2">
+                        <i class="fas fa-flag"></i> أخبار التقنية المحلية العربية
+                    </h3>
+                    <div id="dynamic-tech-local-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 6. AI HUB UPDATES SECTION -->
+        <!-- ========================================== -->
+        <section id="aihub-section" class="main-content-section hidden animate-fade-in">
+            <div class="aihub-spotlight rounded-2xl p-6 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-extrabold text-cyan-200 mb-2 flex items-center gap-2">
+                            <i class="fas fa-bolt text-amber-300"></i> تحديثات AI HUB
+                        </h2>
+                        <p class="text-sm text-slate-200">قسم مميز لإعلانات الجروب، الأدوات، المجتمع، والشروحات. تحديثه يتم فقط من لوحة الأدمن.</p>
+                    </div>
+                    <div class="text-xs text-slate-100 bg-slate-900/50 border border-cyan-700/50 rounded-xl px-3 py-2">
+                        مصادر موثقة + زر مباشر لمصدر الخبر
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex overflow-x-auto hide-scroll gap-2 mb-6 pb-2 border-b border-cyan-900/60">
+                <button onclick="switchAIHubSubTab('aihub-announcements')" id="sub-btn-aihub-announcements" data-tone="announcements" class="aihub-sub-tab active px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 text-white border">
+                    <i class="fas fa-bullhorn"></i> إعلانات الجروب
+                </button>
+                <button onclick="switchAIHubSubTab('aihub-tools')" id="sub-btn-aihub-tools" data-tone="tools" class="aihub-sub-tab px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 text-slate-300 bg-slate-800 border border-slate-700">
+                    <i class="fas fa-toolbox"></i> أدوات وملفات
+                </button>
+                <button onclick="switchAIHubSubTab('aihub-community')" id="sub-btn-aihub-community" data-tone="community" class="aihub-sub-tab px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 text-slate-300 bg-slate-800 border border-slate-700">
+                    <i class="fas fa-users"></i> مجتمع وفعاليات
+                </button>
+                <button onclick="switchAIHubSubTab('aihub-tutorials')" id="sub-btn-aihub-tutorials" data-tone="tutorials" class="aihub-sub-tab px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 text-slate-300 bg-slate-800 border border-slate-700">
+                    <i class="fas fa-graduation-cap"></i> الشروحات
+                </button>
+            </div>
+
+            <div id="aihub-announcements" class="aihub-content-section block">
+                <div id="dynamic-aihub-announcements-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+            <div id="aihub-tools" class="aihub-content-section hidden">
+                <div id="dynamic-aihub-tools-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+            <div id="aihub-community" class="aihub-content-section hidden">
+                <div id="dynamic-aihub-community-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            </div>
+            <div id="aihub-tutorials" class="aihub-content-section hidden">
+                <div id="dynamic-aihub-tutorials-list" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
             </div>
         </section>
 
@@ -410,78 +460,1151 @@
     <footer class="bg-slate-900 border-t border-slate-800 py-8 mt-auto">
         <div class="max-w-7xl mx-auto px-4 text-center">
             <div class="flex justify-center items-center gap-3 mb-4">
-                <img src="logo.png" alt="AI HUB" class="h-8 w-8 object-contain" onerror="this.style.display='none';">
+                <img src="logo.png" alt="AI HUB" class="h-12 w-12 object-contain" onerror="this.style.display='none';">
                 <h3 class="font-bold text-amber-500 text-lg">قضاة الذكاء الاصطناعي (AI HUB)</h3>
             </div>
             <p class="text-slate-500 text-sm mb-2">نشرة الأخبار الذكية - تجميع وتحليل لحظي للأحداث العالمية والمحلية.</p>
-            <p class="text-xs text-slate-600">جميع البيانات واردة من وكالات الأنباء الموثوقة والمصادر الرسمية، وتخضع للمراجعة الآلية. التنبيهات الاستثمارية هي نصائح لإدارة المخاطر وليست توصيات بيع أو شراء.</p>
+            <p class="text-xs text-slate-600">جميع البيانات واردة من وكالات الأنباء الموثوقة والمصادر الرسمية، مع إتاحة رابط المصدر الرئيسي لكل خبر.</p>
+            <p class="text-sm text-amber-400 font-semibold mt-3">حقوق الملكية للتطبيق: مستشار: أحمد وجيه محمد - هيئة قضايا الدولة</p>
         </div>
     </footer>
 
+    <!-- Admin Modal -->
+    <div id="admin-modal" class="hidden fixed inset-0 z-[90] bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="max-w-3xl mx-auto bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl admin-modal-scroll">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+                <h3 class="text-lg font-bold text-amber-400">لوحة إدارة الأخبار</h3>
+                <button id="close-admin-panel" class="text-slate-300 hover:text-white text-lg">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div id="admin-login-view" class="p-5">
+                <p class="text-sm text-slate-300 mb-3">أدخل كلمة مرور الأدمن لإضافة الأخبار يدويًا.</p>
+                <div class="flex flex-col md:flex-row gap-3">
+                    <input id="admin-password" type="password" placeholder="كلمة المرور" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <button id="admin-login-btn" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-lg text-sm">دخول</button>
+                </div>
+                <div class="mt-3 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
+                    <input id="api-base-input" type="text" placeholder="رابط API (اختياري) مثال: http://127.0.0.1:3130" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                    <button id="api-base-save-btn" class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold px-4 py-2 rounded-lg text-sm">حفظ رابط API</button>
+                </div>
+                <p id="api-base-status" class="text-xs text-slate-400 mt-2">سيتم اكتشاف API تلقائيًا.</p>
+                <p id="admin-login-status" class="text-xs text-slate-400 mt-3"></p>
+            </div>
+
+            <div id="admin-panel-view" class="hidden p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <p class="text-sm text-emerald-300 font-bold">تم تسجيل الدخول بنجاح</p>
+                    <button id="admin-logout-btn" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded-md">تسجيل الخروج</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <select id="admin-category" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                        <option value="war">جيوسياسي</option>
+                        <option value="local">مصر/محلي</option>
+                        <option value="economy">الاقتصاد</option>
+                        <option value="legal">القانون</option>
+                        <option value="ai">الذكاء الاصطناعي</option>
+                        <option value="tech">التقنية</option>
+                    </select>
+                    <select id="admin-scope" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                        <option value="local">محلي عربي</option>
+                        <option value="global">عالمي</option>
+                    </select>
+                    <select id="admin-aihub-section" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 hidden">
+                        <option value="announcements">إعلانات الجروب</option>
+                        <option value="tools">أدوات وملفات</option>
+                        <option value="community">مجتمع وفعاليات</option>
+                        <option value="tutorials">الشروحات</option>
+                    </select>
+                </div>
+
+                <div class="bg-slate-800/70 border border-cyan-800/50 rounded-xl p-4 mb-3">
+                    <h4 class="text-sm font-bold text-cyan-300 mb-2">تحديث تغذية الأخبار (أدمن فقط)</h4>
+                    <p class="text-xs text-slate-300 mb-3">يمكنك تنفيذ تحديث فوري للأخبار من المصادر المعتمدة، بالإضافة للتحديث التلقائي المجدول.</p>
+                    <div class="flex flex-col md:flex-row gap-2 mb-2">
+                        <button id="admin-ai-refresh-btn" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-lg text-sm">تنفيذ تحديث AI الآن</button>
+                        <button id="admin-ai-status-btn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold px-4 py-2 rounded-lg text-sm">حالة التحديث</button>
+                    </div>
+                    <p id="admin-ai-status" class="text-xs text-slate-300">لم يتم تحميل الحالة بعد.</p>
+                    <div class="flex flex-col md:flex-row gap-2 mt-3">
+                        <select id="admin-refresh-category" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                            <option value="all">كل الأقسام</option>
+                            <option value="war">جيوسياسي</option>
+                            <option value="local">مصر/محلي</option>
+                            <option value="economy">اقتصاد</option>
+                            <option value="ai">ذكاء اصطناعي</option>
+                            <option value="tech">تقنية</option>
+                        </select>
+                        <button id="admin-refresh-sources-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm">تحديث المصادر الحقيقية الآن</button>
+                    </div>
+                    <p id="admin-refresh-status" class="text-xs text-slate-300 mt-2">تحديث المصادر اليدوي غير منفذ بعد.</p>
+                </div>
+
+                <div class="space-y-3">
+                    <input id="admin-title" type="text" placeholder="عنوان الخبر" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                    <textarea id="admin-summary" rows="4" placeholder="ملخص الخبر" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"></textarea>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input id="admin-source" type="text" placeholder="اسم المصدر (مثال: Reuters)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                        <input id="admin-source-url" type="url" placeholder="رابط المصدر الرئيسي للخبر" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input id="admin-image-url" type="url" placeholder="رابط الصورة (اختياري)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                        <input id="admin-image-file" type="file" accept="image/*" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 file:mr-3 file:rounded file:border-0 file:bg-amber-600 file:px-3 file:py-1 file:text-white">
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-3 mt-4">
+                    <button id="admin-add-news-btn" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded-lg text-sm">إضافة الخبر</button>
+                    <button id="admin-fetch-link-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm">استجلاب الخبر من الرابط</button>
+                    <button id="admin-refresh-list-btn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold px-4 py-2 rounded-lg text-sm">تحديث القائمة</button>
+                </div>
+                <p id="admin-add-status" class="text-xs text-slate-300 mt-3"></p>
+
+                <div class="mt-4 border-t border-slate-700 pt-4">
+                    <h4 class="text-sm font-bold text-slate-200 mb-2">آخر الأخبار المضافة يدويًا</h4>
+                    <div id="admin-manual-news-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript for Interactions -->
     <script>
-        // Update live clock
+        const PUBLIC_POLL_MS = 5 * 60 * 1000;
+        const SAVED_API_BASE = localStorage.getItem('aihub_api_base') || '';
+        const SAVED_VIEW_MODE = localStorage.getItem('aihub_view_mode') || 'cards';
+        const APP_STATE = {
+            adminToken: localStorage.getItem('aihub_admin_token') || '',
+            latestPayload: null,
+            pagination: {},
+            listCache: {},
+            viewMode: SAVED_VIEW_MODE === 'timeline' ? 'timeline' : 'cards',
+            apiBase: SAVED_API_BASE,
+            apiReady: false,
+            discoveringApi: false
+        };
+        const API_PORT_CANDIDATES = ['3000', '3130', '3131', '3132', '3133', '3134', '3135', '8080', '5000'];
+
+        const CATEGORY_META = {
+            war: { label: 'جيوسياسي', icon: 'fa-earth-africa', tone: 'red' },
+            local: { label: 'محلي', icon: 'fa-flag', tone: 'sky' },
+            economy: { label: 'اقتصاد', icon: 'fa-chart-line', tone: 'emerald' },
+            legal: { label: 'القانون', icon: 'fa-gavel', tone: 'amber' },
+            ai: { label: 'الذكاء الاصطناعي', icon: 'fa-brain', tone: 'violet' },
+            tech: { label: 'التقنية', icon: 'fa-microchip', tone: 'cyan' },
+            arabic: { label: 'العربي والمحلي', icon: 'fa-language', tone: 'sky' },
+            global: { label: 'العالمي', icon: 'fa-globe', tone: 'amber' },
+            techai: { label: 'تقنية + AI', icon: 'fa-microchip', tone: 'cyan' }
+        };
+
+        const DYNAMIC_CONTAINER_BY_CATEGORY = {
+            global_war: 'dynamic-global-war-list',
+            global_economy: 'dynamic-global-economy-list',
+            global_local: 'dynamic-global-local-list',
+            arabic_war: 'dynamic-arabic-war-list',
+            arabic_economy: 'dynamic-arabic-economy-list',
+            arabic_local: 'dynamic-arabic-local-list',
+            legal_manual: 'dynamic-legal-manual-list',
+            techai_ai: 'dynamic-techai-ai-list',
+            techai_tech: 'dynamic-techai-tech-list'
+        };
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function escapeAttr(value) {
+            return escapeHtml(value).replace(/`/g, '&#96;');
+        }
+
+        function formatDateTime(value) {
+            if (!value) return '--';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value;
+            return date.toLocaleString('ar-EG', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function normalizeApiBase(base) {
+            const raw = String(base || '').trim();
+            if (!raw) return '';
+            let out = raw;
+            if (!/^https?:\/\//i.test(out)) {
+                out = `${window.location.protocol}//${out}`;
+            }
+            out = out.replace(/\/+$/g, '');
+            return out;
+        }
+
+        function setApiStatus(text, kind = 'muted') {
+            const el = document.getElementById('api-base-status');
+            if (!el) return;
+            const cls = kind === 'ok'
+                ? 'text-xs text-emerald-300 mt-2'
+                : kind === 'error'
+                    ? 'text-xs text-red-300 mt-2'
+                    : 'text-xs text-slate-400 mt-2';
+            el.className = cls;
+            el.textContent = text;
+        }
+
+        function setApiBase(base, persist = true) {
+            const normalized = normalizeApiBase(base);
+            APP_STATE.apiBase = normalized;
+            APP_STATE.apiReady = false;
+            if (!persist) return;
+
+            if (!normalized || normalized === window.location.origin) {
+                localStorage.removeItem('aihub_api_base');
+            } else {
+                localStorage.setItem('aihub_api_base', normalized);
+            }
+        }
+
+        function buildAutoApiCandidates() {
+            const protocol = window.location.protocol || 'http:';
+            const host = window.location.hostname || '127.0.0.1';
+            const activePort = String(window.location.port || '').trim();
+            const ports = [...new Set([activePort, ...API_PORT_CANDIDATES].filter(Boolean))];
+            const hosts = [...new Set([host, '127.0.0.1', 'localhost'])];
+
+            const out = [''];
+            hosts.forEach((h) => {
+                ports.forEach((p) => {
+                    out.push(`${protocol}//${h}:${p}`);
+                });
+            });
+            return [...new Set(out.map((base) => normalizeApiBase(base) || ''))];
+        }
+
+        function buildApiUrl(path, base = '') {
+            const safePath = String(path || '').startsWith('/') ? String(path || '') : `/${String(path || '')}`;
+            if (!base) return safePath;
+            return `${base}${safePath}`;
+        }
+
+        function getOrderedApiBases() {
+            const known = buildAutoApiCandidates();
+            if (APP_STATE.apiBase && !known.includes(APP_STATE.apiBase)) known.unshift(APP_STATE.apiBase);
+            if (APP_STATE.apiBase || APP_STATE.apiBase === '') {
+                return [APP_STATE.apiBase, ...known.filter((x) => x !== APP_STATE.apiBase)];
+            }
+            return known;
+        }
+
+        async function discoverApiBase() {
+            if (APP_STATE.discoveringApi) return APP_STATE.apiReady;
+            APP_STATE.discoveringApi = true;
+            try {
+                const bases = getOrderedApiBases();
+                for (const base of bases) {
+                    const healthUrl = buildApiUrl('/api/health', base);
+                    try {
+                        const response = await fetch(healthUrl, { method: 'GET', headers: { Accept: 'application/json' } });
+                        if (!response.ok) continue;
+                        const payload = await response.json().catch(() => null);
+                        if (!payload || payload.ok !== true) continue;
+                        setApiBase(base, true);
+                        APP_STATE.apiReady = true;
+                        setApiStatus(`تم الاتصال بخادم الأخبار: ${base || 'نفس رابط الصفحة'}`, 'ok');
+                        const input = document.getElementById('api-base-input');
+                        if (input) input.value = APP_STATE.apiBase || '';
+                        return true;
+                    } catch (_) {
+                        // Try next base
+                    }
+                }
+                APP_STATE.apiReady = false;
+                setApiStatus('تعذر اكتشاف خادم API. شغّل server.js ثم أدخل الرابط يدويًا.', 'error');
+                return false;
+            } finally {
+                APP_STATE.discoveringApi = false;
+            }
+        }
+
+        async function fetchApi(path, options = {}) {
+            if (!APP_STATE.apiReady) {
+                await discoverApiBase();
+            }
+            const bases = getOrderedApiBases();
+            let lastError = null;
+
+            for (const base of bases) {
+                const url = buildApiUrl(path, base);
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok || [400, 401, 403].includes(response.status)) {
+                        setApiBase(base, true);
+                        APP_STATE.apiReady = true;
+                        return response;
+                    }
+                    if ([404, 405, 502, 503, 504].includes(response.status)) {
+                        lastError = new Error(`HTTP ${response.status}`);
+                        continue;
+                    }
+                    setApiBase(base, true);
+                    APP_STATE.apiReady = true;
+                    return response;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            APP_STATE.apiReady = false;
+            setApiStatus('فشل الاتصال بـ API. تأكد أن server.js يعمل ثم أعد المحاولة.', 'error');
+            throw (lastError || new Error('تعذر الوصول إلى واجهة الـ API'));
+        }
+
         function updateClock() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('real-time-clock').innerHTML = `1 مارس 2026 - ${timeString}`;
+            const dateString = now.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+            const clock = document.getElementById('real-time-clock');
+            if (clock) clock.innerHTML = `${dateString} - ${timeString}`;
         }
-        setInterval(updateClock, 1000);
-        updateClock();
 
-        // Switch Main Tabs (Sections)
         function switchMainTab(tabName) {
-            // Hide all main sections
             const sections = document.querySelectorAll('.main-content-section');
-            sections.forEach(sec => {
-                sec.classList.remove('block');
-                sec.classList.add('hidden');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
             });
 
-            // Remove active state from all main buttons
             const buttons = document.querySelectorAll('.main-tab');
-            buttons.forEach(btn => {
-                btn.classList.remove('active', 'border-amber-400', 'text-amber-400');
-                btn.classList.add('border-transparent', 'text-slate-400');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'border-amber-400', 'text-amber-400');
+                button.classList.add('border-transparent', 'text-slate-400');
             });
 
-            // Show selected section
-            document.getElementById(`${tabName}-section`).classList.remove('hidden');
-            document.getElementById(`${tabName}-section`).classList.add('block');
-            
-            // Set active state on clicked button
+            const selectedSection = document.getElementById(`${tabName}-section`);
+            if (!selectedSection) return;
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+
             const activeBtn = document.getElementById(`main-btn-${tabName}`);
+            if (!activeBtn) return;
             activeBtn.classList.add('active');
-            
-            // Scroll selected tab into view on mobile
             activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
 
-        // Switch Sub Tabs (Inside War Section)
         function switchSubTab(subTabId) {
-            // Hide all sub contents
             const subContents = document.querySelectorAll('.sub-content-section');
-            subContents.forEach(content => {
+            subContents.forEach((content) => {
                 content.classList.remove('block');
                 content.classList.add('hidden');
             });
 
-            // Remove active classes from all sub buttons
             const subBtns = document.querySelectorAll('.sub-tab');
-            subBtns.forEach(btn => {
+            subBtns.forEach((btn) => {
                 btn.classList.remove('active', 'bg-red-500', 'text-white');
                 btn.classList.add('text-slate-300', 'bg-slate-800');
             });
 
-            // Show selected sub content
-            document.getElementById(subTabId).classList.remove('hidden');
-            document.getElementById(subTabId).classList.add('block');
-            
-            // Add active class to clicked button
+            const selectedSub = document.getElementById(subTabId);
+            if (!selectedSub) return;
+            selectedSub.classList.remove('hidden');
+            selectedSub.classList.add('block');
+
             const activeBtn = document.getElementById(`sub-btn-${subTabId}`);
+            if (!activeBtn) return;
             activeBtn.classList.add('active');
             activeBtn.classList.remove('text-slate-300', 'bg-slate-800');
         }
-    </script>
+
+        function switchAIHubSubTab(tabId) {
+            const sections = document.querySelectorAll('.aihub-content-section');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('.aihub-sub-tab');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'text-white');
+                button.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+            });
+
+            const selectedSection = document.getElementById(tabId);
+            const selectedButton = document.getElementById(`sub-btn-${tabId}`);
+            if (!selectedSection || !selectedButton) return;
+
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+            selectedButton.classList.add('active', 'text-white');
+            selectedButton.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+        }
+
+        function switchArabicSubTab(tabId) {
+            const sections = document.querySelectorAll('.arabic-content-section');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('#arabic-section .sub-tab');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'bg-red-500', 'text-white');
+                button.classList.add('text-slate-300', 'bg-slate-800');
+            });
+
+            const selectedSection = document.getElementById(tabId);
+            const selectedButton = document.getElementById(`sub-btn-${tabId}`);
+            if (!selectedSection || !selectedButton) return;
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+            selectedButton.classList.add('active', 'bg-red-500', 'text-white');
+            selectedButton.classList.remove('text-slate-300', 'bg-slate-800');
+        }
+
+        function switchGlobalSubTab(tabId) {
+            const sections = document.querySelectorAll('.global-content-section');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('#global-section .sub-tab');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'bg-red-500', 'text-white');
+                button.classList.add('text-slate-300', 'bg-slate-800');
+            });
+
+            const selectedSection = document.getElementById(tabId);
+            const selectedButton = document.getElementById(`sub-btn-${tabId}`);
+            if (!selectedSection || !selectedButton) return;
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+            selectedButton.classList.add('active', 'bg-red-500', 'text-white');
+            selectedButton.classList.remove('text-slate-300', 'bg-slate-800');
+        }
+
+        function switchTechAiSubTab(tabId) {
+            const sections = document.querySelectorAll('.techai-content-section');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('#techai-section .sub-tab');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'bg-red-500', 'text-white');
+                button.classList.add('text-slate-300', 'bg-slate-800');
+            });
+
+            const selectedSection = document.getElementById(tabId);
+            const selectedButton = document.getElementById(`sub-btn-${tabId}`);
+            if (!selectedSection || !selectedButton) return;
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+            selectedButton.classList.add('active', 'bg-red-500', 'text-white');
+            selectedButton.classList.remove('text-slate-300', 'bg-slate-800');
+        }
+
+        function switchScopeTab(category, scope) {
+            const scopes = ['global', 'local'];
+            scopes.forEach((name) => {
+                const panel = document.getElementById(`${category}-scope-${name}`);
+                const btn = document.getElementById(`scope-btn-${category}-${name}`);
+                if (panel) {
+                    if (name === scope) {
+                        panel.classList.remove('hidden');
+                        panel.classList.add('block');
+                    } else {
+                        panel.classList.remove('block');
+                        panel.classList.add('hidden');
+                    }
+                }
+                if (btn) {
+                    if (name === scope) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+        }
+
+        function sourceButton(item) {
+            if (!item?.source_url) {
+                return '<span class="text-[11px] text-slate-500">لا يوجد رابط مصدر</span>';
+            }
+            return `<a href="${escapeAttr(item.source_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-amber-600 hover:bg-amber-500 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-link"></i> مصدر الخبر</a>`;
+        }
+
+        function applyViewModeButtons() {
+            const cardsBtn = document.getElementById('view-cards-btn');
+            const timelineBtn = document.getElementById('view-timeline-btn');
+            if (cardsBtn) cardsBtn.classList.toggle('active', APP_STATE.viewMode === 'cards');
+            if (timelineBtn) timelineBtn.classList.toggle('active', APP_STATE.viewMode === 'timeline');
+        }
+
+        function rerenderAllLists() {
+            Object.keys(APP_STATE.listCache || {}).forEach((containerId) => {
+                const cache = APP_STATE.listCache[containerId];
+                if (!cache) return;
+                renderNewsList(containerId, cache.items, cache.tone, cache.emptyText);
+            });
+        }
+
+        function setViewMode(mode) {
+            const normalized = mode === 'timeline' ? 'timeline' : 'cards';
+            APP_STATE.viewMode = normalized;
+            localStorage.setItem('aihub_view_mode', normalized);
+            applyViewModeButtons();
+            rerenderAllLists();
+        }
+
+        function buildNewsCard(item, tone = 'amber') {
+            const toneMap = {
+                red: 'border-red-700/60',
+                emerald: 'border-emerald-700/60',
+                amber: 'border-amber-700/60',
+                violet: 'border-violet-700/60',
+                cyan: 'border-cyan-700/60',
+                sky: 'border-sky-700/60'
+            };
+            const borderTone = toneMap[tone] || 'border-slate-700';
+            const image = item?.image_url
+                ? `<div class="h-32 w-full overflow-hidden rounded-lg mb-3 bg-slate-900"><img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.title || 'news')}" class="w-full h-full object-cover" onerror="this.style.display='none';"></div>`
+                : '';
+
+            return `
+                <article class="bg-slate-800/95 rounded-xl border ${borderTone} p-4 shadow">
+                    ${image}
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300">${escapeHtml(item.source || 'مصدر غير متاح')}</span>
+                        <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                    </div>
+                    <h4 class="text-sm font-bold text-slate-100 mb-2">${escapeHtml(item.title || 'بدون عنوان')}</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">${escapeHtml(item.summary || '')}</p>
+                    <div class="flex items-center justify-between gap-2">
+                        ${sourceButton(item)}
+                        ${item.origin === 'manual' ? '<span class="text-[10px] text-cyan-300 border border-cyan-700/60 px-2 py-1 rounded">مضاف يدويًا</span>' : ''}
+                    </div>
+                </article>
+            `;
+        }
+
+        function buildTimelineItem(item, tone = 'amber') {
+            const toneMap = {
+                red: 'border-red-600 text-red-300',
+                emerald: 'border-emerald-600 text-emerald-300',
+                amber: 'border-amber-600 text-amber-300',
+                violet: 'border-violet-600 text-violet-300',
+                cyan: 'border-cyan-600 text-cyan-300',
+                sky: 'border-sky-600 text-sky-300'
+            };
+            const toneClass = toneMap[tone] || 'border-slate-600 text-slate-300';
+            const image = item?.image_url
+                ? `<div class="h-28 md:h-32 w-full overflow-hidden rounded-lg mb-3 bg-slate-900"><img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.title || 'news')}" class="w-full h-full object-cover" onerror="this.style.display='none';"></div>`
+                : '';
+
+            return `
+                <article class="relative pr-5 border-r-2 ${toneClass}">
+                    <div class="absolute -right-[7px] top-3 w-3 h-3 rounded-full bg-current"></div>
+                    <div class="bg-slate-800/95 rounded-xl border border-slate-700 p-4 shadow mb-3">
+                        ${image}
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300">${escapeHtml(item.source || 'مصدر غير متاح')}</span>
+                            <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-100 mb-2">${escapeHtml(item.title || 'بدون عنوان')}</h4>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">${escapeHtml(item.summary || '')}</p>
+                        <div class="flex items-center justify-between gap-2">
+                            ${sourceButton(item)}
+                            ${item.origin === 'manual' ? '<span class="text-[10px] text-cyan-300 border border-cyan-700/60 px-2 py-1 rounded">مضاف يدويًا</span>' : ''}
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderNewsList(containerId, items, tone, emptyText = 'لا توجد بيانات حالياً.') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const allItems = Array.isArray(items) ? items : [];
+            APP_STATE.listCache[containerId] = { items: allItems, tone, emptyText };
+            if (!container.dataset.defaultClass) {
+                container.dataset.defaultClass = container.className;
+            }
+            const isTimeline = APP_STATE.viewMode === 'timeline';
+            container.className = isTimeline ? 'space-y-2' : container.dataset.defaultClass;
+
+            if (!allItems.length) {
+                container.innerHTML = `<div class="text-xs text-slate-400 bg-slate-900/60 border border-slate-700 rounded-lg p-3">${escapeHtml(emptyText)}</div>`;
+                return;
+            }
+
+            const pageSize = 10;
+            const totalPages = Math.max(1, Math.ceil(allItems.length / pageSize));
+            const safePage = Math.min(Math.max(Number(APP_STATE.pagination[containerId] || 1), 1), totalPages);
+            APP_STATE.pagination[containerId] = safePage;
+
+            const start = (safePage - 1) * pageSize;
+            const visibleItems = allItems.slice(start, start + pageSize);
+            let html = visibleItems
+                .map((item) => (isTimeline ? buildTimelineItem(item, tone) : buildNewsCard(item, tone)))
+                .join('');
+
+            if (allItems.length > pageSize) {
+                if (isTimeline) {
+                    html += `
+                        <div class="bg-slate-900/60 border border-slate-700 rounded-lg p-3 flex items-center justify-between gap-2">
+                            <button data-page-container="${escapeAttr(containerId)}" data-page-action="prev" class="news-page-btn text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded ${safePage <= 1 ? 'opacity-40 cursor-not-allowed' : ''}" ${safePage <= 1 ? 'disabled' : ''}>السابق</button>
+                            <span class="text-xs text-slate-300">صفحة ${safePage} من ${totalPages} | إجمالي الأخبار ${allItems.length}</span>
+                            <button data-page-container="${escapeAttr(containerId)}" data-page-action="next" class="news-page-btn text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded ${safePage >= totalPages ? 'opacity-40 cursor-not-allowed' : ''}" ${safePage >= totalPages ? 'disabled' : ''}>التالي</button>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="md:col-span-2 xl:col-span-3 bg-slate-900/60 border border-slate-700 rounded-lg p-3 flex items-center justify-between gap-2">
+                            <button data-page-container="${escapeAttr(containerId)}" data-page-action="prev" class="news-page-btn text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded ${safePage <= 1 ? 'opacity-40 cursor-not-allowed' : ''}" ${safePage <= 1 ? 'disabled' : ''}>السابق</button>
+                            <span class="text-xs text-slate-300">صفحة ${safePage} من ${totalPages} | إجمالي الأخبار ${allItems.length}</span>
+                            <button data-page-container="${escapeAttr(containerId)}" data-page-action="next" class="news-page-btn text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded ${safePage >= totalPages ? 'opacity-40 cursor-not-allowed' : ''}" ${safePage >= totalPages ? 'disabled' : ''}>التالي</button>
+                        </div>
+                    `;
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        function changeNewsPage(containerId, action) {
+            const cache = APP_STATE.listCache[containerId];
+            if (!cache) return;
+            const totalPages = Math.max(1, Math.ceil(cache.items.length / 10));
+            let current = Number(APP_STATE.pagination[containerId] || 1);
+            if (action === 'next') current += 1;
+            if (action === 'prev') current -= 1;
+            current = Math.min(Math.max(current, 1), totalPages);
+            APP_STATE.pagination[containerId] = current;
+            renderNewsList(containerId, cache.items, cache.tone, cache.emptyText);
+        }
+
+        function splitAiHub(items) {
+            const out = { announcements: [], tools: [], community: [], tutorials: [] };
+            (Array.isArray(items) ? items : []).forEach((item) => {
+                const section = item?.aihub_section;
+                if (section === 'tools') out.tools.push(item);
+                else if (section === 'community') out.community.push(item);
+                else if (section === 'tutorials') out.tutorials.push(item);
+                else out.announcements.push(item);
+            });
+            return out;
+        }
+
+        function ensureScopedPair(scopedMap, category, fallbackItems) {
+            const fromApi = scopedMap?.[category] || {};
+            const fallback = Array.isArray(fallbackItems) ? fallbackItems : [];
+            const apiGlobal = Array.isArray(fromApi.global) ? fromApi.global : [];
+            const apiLocal = Array.isArray(fromApi.local) ? fromApi.local : [];
+
+            if (apiGlobal.length || apiLocal.length) {
+                return {
+                    global: apiGlobal,
+                    local: apiLocal
+                };
+            }
+
+            const global = [];
+            const local = [];
+            fallback.forEach((item) => {
+                if (String(item?.scope || '').toLowerCase() === 'local') local.push(item);
+                else global.push(item);
+            });
+            return { global, local };
+        }
+
+        function renderTicker(news) {
+            const track = document.getElementById('news-ticker-track');
+            if (!track) return;
+
+            const orderedCategories = ['aihub', 'war', 'local', 'economy', 'legal', 'ai', 'tech'];
+            const headlines = [];
+            orderedCategories.forEach((category) => {
+                const label = CATEGORY_META[category]?.label || category;
+                (Array.isArray(news?.[category]) ? news[category] : []).slice(0, 4).forEach((item) => {
+                    headlines.push({ label, title: item.title || '' });
+                });
+            });
+
+            if (!headlines.length) {
+                track.innerHTML = '<span class="ticker-chip"><i class="fas fa-stream text-amber-400"></i> لا توجد أخبار لعرضها حالياً.</span>';
+                return;
+            }
+
+            const doubled = [...headlines, ...headlines];
+            track.innerHTML = doubled.map((entry) => `
+                <span class="ticker-chip">
+                    <i class="fas fa-circle text-[8px] text-amber-400"></i>
+                    <strong class="text-amber-300">${escapeHtml(entry.label)}</strong>
+                    <span>${escapeHtml(entry.title)}</span>
+                </span>
+            `).join('');
+            const durationSec = Math.max(95, headlines.length * 8);
+            track.style.animationDuration = `${durationSec}s`;
+        }
+
+        function renderMergedTabs(news, payload) {
+            const scoped = payload?.news_scopes || {};
+            const warScoped = ensureScopedPair(scoped, 'war', news?.war || []);
+            const localScoped = ensureScopedPair(scoped, 'local', news?.local || []);
+            const economyScoped = ensureScopedPair(scoped, 'economy', news?.economy || []);
+            const aiScoped = ensureScopedPair(scoped, 'ai', news?.ai || []);
+            const techScoped = ensureScopedPair(scoped, 'tech', news?.tech || []);
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_local, localScoped.local, 'sky', 'لا توجد أخبار عربية محلية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_war, warScoped.local, 'sky', 'لا توجد أخبار جيوسياسية عربية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_economy, economyScoped.local, 'sky', 'لا توجد أخبار اقتصادية عربية حالياً.');
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_war, warScoped.global, 'red', 'لا توجد أخبار جيوسياسية عالمية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_economy, economyScoped.global, 'emerald', 'لا توجد أخبار اقتصادية عالمية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_local, localScoped.global, 'amber', 'لا توجد أخبار محلية/إقليمية عالمية حالياً.');
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.legal_manual, news?.legal || [], 'amber', 'لا توجد أخبار قانونية مضافة يدويًا بعد.');
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.techai_ai, aiScoped.global, 'violet', 'لا توجد أخبار AI عالمية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.techai_tech, techScoped.global, 'cyan', 'لا توجد أخبار تقنية عالمية حالياً.');
+
+            const sections = payload?.aihub_sections || splitAiHub(news?.aihub || []);
+            renderNewsList('dynamic-aihub-announcements-list', sections.announcements || [], 'sky', 'لا توجد إعلانات حالياً.');
+            renderNewsList('dynamic-aihub-tools-list', sections.tools || [], 'sky', 'لا توجد أدوات مضافة حالياً.');
+            renderNewsList('dynamic-aihub-community-list', sections.community || [], 'sky', 'لا توجد فعاليات حالياً.');
+            renderNewsList('dynamic-aihub-tutorials-list', sections.tutorials || [], 'sky', 'لا توجد شروحات مضافة حالياً.');
+        }
+
+        function renderMarketSnapshot(payload) {
+            const grid = document.getElementById('macro-indicators-grid');
+            const meta = document.getElementById('macro-indicators-meta');
+            if (!grid || !meta) return;
+
+            const indicators = Array.isArray(payload?.indicators) ? payload.indicators : [];
+            if (!indicators.length) {
+                grid.innerHTML = '<div class="col-span-full text-xs text-slate-400 bg-slate-900/60 border border-slate-700 rounded-lg p-3">لا توجد قراءات لحظية متاحة حالياً.</div>';
+                meta.textContent = payload?.error ? `تعذر تحميل المؤشرات: ${payload.error}` : 'تعذر تحميل المؤشرات حالياً.';
+                return;
+            }
+
+            grid.innerHTML = indicators.map((item) => {
+                const isUp = Number(item.change_percent || 0) >= 0;
+                const price = item.price === null || item.price === undefined ? '--' : Number(item.price).toLocaleString('en-US', { maximumFractionDigits: 3 });
+                const chg = item.change_percent === null || item.change_percent === undefined ? '--' : `${isUp ? '+' : ''}${Number(item.change_percent).toFixed(2)}%`;
+                return `
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                        <p class="text-[11px] text-slate-400 mb-1">${escapeHtml(item.label || '')}</p>
+                        <p class="text-lg font-bold ${isUp ? 'text-emerald-400' : 'text-red-400'}">${escapeHtml(price)}</p>
+                        <p class="text-[10px] ${isUp ? 'text-emerald-500' : 'text-red-500'}">${escapeHtml(chg)}</p>
+                    </div>
+                `;
+            }).join('');
+
+            meta.textContent = `آخر تحديث للمؤشرات: ${formatDateTime(payload.updated_at)} | المصدر: Yahoo Finance (بيانات لحظية قد تكون متأخرة دقائق)`;
+        }
+
+        async function loadMarketSnapshot() {
+            try {
+                const response = await fetchApi('/api/market-snapshot', { method: 'GET', headers: { 'Accept': 'application/json' } });
+                const payload = await response.json();
+                renderMarketSnapshot(payload);
+            } catch (error) {
+                renderMarketSnapshot({ ok: false, error: error.message, indicators: [] });
+            }
+        }
+
+        async function loadNews(force = false) {
+            try {
+                const response = await fetchApi(`/api/news${force ? '?force=1' : ''}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const payload = await response.json();
+                if (!payload?.ok) throw new Error(payload?.error || 'تعذر جلب الأخبار');
+
+                APP_STATE.latestPayload = payload;
+                renderMergedTabs(payload.news, payload);
+                renderTicker(payload.news);
+                loadMarketSnapshot();
+            } catch (error) {
+                const track = document.getElementById('news-ticker-track');
+                if (track) {
+                    track.innerHTML = `<span class="ticker-chip"><i class="fas fa-triangle-exclamation text-red-400"></i> تعذر جلب الأخبار: ${escapeHtml(error.message)} | تحقق من تشغيل server.js</span>`;
+                }
+            }
+        }
+
+        function openAdminModal() {
+            const modal = document.getElementById('admin-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeAdminModal() {
+            const modal = document.getElementById('admin-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function setAdminAuthState(isLoggedIn) {
+            const loginView = document.getElementById('admin-login-view');
+            const panelView = document.getElementById('admin-panel-view');
+            if (!loginView || !panelView) return;
+            if (isLoggedIn) {
+                loginView.classList.add('hidden');
+                panelView.classList.remove('hidden');
+            } else {
+                panelView.classList.add('hidden');
+                loginView.classList.remove('hidden');
+            }
+        }
+
+        async function saveApiBaseFromInput() {
+            const input = document.getElementById('api-base-input');
+            const value = String(input?.value || '').trim();
+            setApiBase(value, true);
+            setApiStatus('جارٍ اختبار رابط API...', 'muted');
+            const ok = await discoverApiBase();
+            if (!ok) {
+                setApiStatus('فشل اختبار رابط API. تأكد من الرابط وتشغيل السيرفر.', 'error');
+            }
+        }
+
+        async function apiJson(url, options = {}, needsAuth = false) {
+            const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+            if (needsAuth && APP_STATE.adminToken) {
+                headers.Authorization = `Bearer ${APP_STATE.adminToken}`;
+            }
+            const response = await fetchApi(url, { ...options, headers });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload?.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
+            return payload;
+        }
+
+        function toggleAIHubSectionInput() {
+            const categoryEl = document.getElementById('admin-category');
+            const sectionEl = document.getElementById('admin-aihub-section');
+            const scopeEl = document.getElementById('admin-scope');
+            if (!categoryEl || !sectionEl || !scopeEl) return;
+            if (categoryEl.value === 'aihub') {
+                sectionEl.classList.remove('hidden');
+                scopeEl.classList.add('hidden');
+            } else {
+                sectionEl.classList.add('hidden');
+                scopeEl.classList.remove('hidden');
+                if (categoryEl.value === 'local') scopeEl.value = 'local';
+            }
+        }
+
+        function fileToDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('تعذر قراءة ملف الصورة'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function setText(id, text, className) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text;
+            if (className) el.className = className;
+        }
+
+        function renderAdminManualList(items) {
+            const target = document.getElementById('admin-manual-news-list');
+            if (!target) return;
+            if (!Array.isArray(items) || !items.length) {
+                target.innerHTML = '<p class="text-xs text-slate-400">لا توجد أخبار مضافة يدويًا بعد.</p>';
+                return;
+            }
+            target.innerHTML = items.slice(0, 10).map((item) => `
+                <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+                    <div class="flex items-start justify-between gap-2 mb-1">
+                        <h5 class="text-xs font-bold text-slate-100">${escapeHtml(item.title || '')}</h5>
+                        <span class="text-[10px] text-slate-400">${escapeHtml(item.category || '')} ${item.scope ? `| ${escapeHtml(item.scope)}` : ''}</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[10px] text-slate-400">${escapeHtml(item.source || '')}</span>
+                        <div class="flex items-center gap-2">
+                            ${sourceButton(item)}
+                            <button class="admin-delete-news-btn text-[10px] bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded" data-news-id="${escapeAttr(item.id || '')}">حذف</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function deleteManualNews(id) {
+            if (!id) return;
+            setText('admin-add-status', 'جارٍ حذف الخبر...', 'text-xs text-slate-300 mt-3');
+            try {
+                await apiJson('/api/admin/news/delete', {
+                    method: 'POST',
+                    body: JSON.stringify({ id })
+                }, true);
+                setText('admin-add-status', 'تم حذف الخبر.', 'text-xs text-emerald-300 mt-3');
+                await Promise.all([refreshAdminManualList(), loadNews(false)]);
+            } catch (error) {
+                setText('admin-add-status', `تعذر حذف الخبر: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function refreshAdminManualList() {
+            try {
+                const payload = await apiJson('/api/admin/news', { method: 'GET' }, true);
+                renderAdminManualList(payload.items || []);
+            } catch (error) {
+                renderAdminManualList([]);
+                setText('admin-add-status', `تعذر تحميل قائمة الأخبار اليدوية: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function refreshAdminAIStatus() {
+            try {
+                const payload = await apiJson('/api/admin/auto-status', { method: 'GET' }, true);
+                const nextRun = payload.next_run_at ? formatDateTime(payload.next_run_at) : '--';
+                const lastRun = payload.updated_at ? formatDateTime(payload.updated_at) : '--';
+                const err = payload.error ? ` | آخر خطأ: ${payload.error}` : '';
+                setText('admin-ai-status', `آخر تحديث: ${lastRun} | القادم: ${nextRun} | المصدر: ${payload.source || '--'}${err}`, 'text-xs text-slate-300');
+            } catch (error) {
+                setText('admin-ai-status', `تعذر جلب حالة التحديث: ${error.message}`, 'text-xs text-red-300');
+            }
+        }
+
+        async function adminForceAIRefresh() {
+            setText('admin-ai-status', 'جارٍ تنفيذ تحديث AI...', 'text-xs text-cyan-300');
+            try {
+                const payload = await apiJson('/api/admin/refresh-ai', { method: 'POST' }, true);
+                await loadNews(false);
+                await refreshAdminAIStatus();
+                setText('admin-ai-status', `تم التحديث بنجاح. المصدر: ${payload.source || '--'} | وقت التنفيذ: ${formatDateTime(payload.updated_at)}`, 'text-xs text-emerald-300');
+            } catch (error) {
+                setText('admin-ai-status', `فشل التحديث الفوري: ${error.message}`, 'text-xs text-red-300');
+            }
+        }
+
+        async function adminRefreshSources() {
+            const category = String(document.getElementById('admin-refresh-category')?.value || 'all');
+            setText('admin-refresh-status', 'جارٍ تحديث المصادر الآن...', 'text-xs text-cyan-300 mt-2');
+            try {
+                const payload = await apiJson('/api/admin/refresh-sources', {
+                    method: 'POST',
+                    body: JSON.stringify({ category })
+                }, true);
+                setText('admin-refresh-status', `تم التحديث بنجاح: ${payload.source} | ${formatDateTime(payload.updated_at)}`, 'text-xs text-emerald-300 mt-2');
+                await loadNews(false);
+            } catch (error) {
+                setText('admin-refresh-status', `فشل تحديث المصادر: ${error.message}`, 'text-xs text-red-300 mt-2');
+            }
+        }
+
+        async function adminLogin() {
+            const passwordEl = document.getElementById('admin-password');
+            const password = String(passwordEl?.value || '').trim();
+            if (!password) {
+                setText('admin-login-status', 'يرجى إدخال كلمة المرور.', 'text-xs text-red-300 mt-3');
+                return;
+            }
+
+            setText('admin-login-status', 'جارٍ التحقق...', 'text-xs text-slate-300 mt-3');
+            try {
+                const payload = await apiJson('/api/admin/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ password })
+                });
+                APP_STATE.adminToken = payload.token;
+                localStorage.setItem('aihub_admin_token', payload.token);
+                setAdminAuthState(true);
+                setText('admin-add-status', 'يمكنك الآن إضافة الأخبار.', 'text-xs text-emerald-300 mt-3');
+                await refreshAdminManualList();
+                await refreshAdminAIStatus();
+            } catch (error) {
+                const apiHint = APP_STATE.apiBase ? ` | API: ${APP_STATE.apiBase}` : '';
+                setText('admin-login-status', `فشل تسجيل الدخول: ${error.message}${apiHint}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function adminLogout() {
+            try {
+                await apiJson('/api/admin/logout', { method: 'POST' }, true);
+            } catch (_) {}
+            APP_STATE.adminToken = '';
+            localStorage.removeItem('aihub_admin_token');
+            setAdminAuthState(false);
+            setText('admin-login-status', 'تم تسجيل الخروج.', 'text-xs text-slate-300 mt-3');
+        }
+
+        async function adminFetchByLink() {
+            const sourceUrl = String(document.getElementById('admin-source-url')?.value || '').trim();
+            const category = document.getElementById('admin-category')?.value || 'local';
+            if (!sourceUrl) {
+                setText('admin-add-status', 'أضف رابط المصدر أولاً.', 'text-xs text-red-300 mt-3');
+                return;
+            }
+
+            setText('admin-add-status', 'جارٍ استجلاب بيانات الخبر من الرابط...', 'text-xs text-cyan-300 mt-3');
+            try {
+                const payload = await apiJson('/api/admin/news/extract', {
+                    method: 'POST',
+                    body: JSON.stringify({ source_url: sourceUrl, category })
+                }, true);
+                const ex = payload.extracted || {};
+                if (ex.title) document.getElementById('admin-title').value = ex.title;
+                if (ex.summary) document.getElementById('admin-summary').value = ex.summary;
+                if (ex.source) document.getElementById('admin-source').value = ex.source;
+                if (ex.image_url) document.getElementById('admin-image-url').value = ex.image_url;
+                if (ex.scope && document.getElementById('admin-scope')) {
+                    document.getElementById('admin-scope').value = ex.scope;
+                }
+                setText('admin-add-status', 'تم استجلاب البيانات بنجاح. راجعها ثم اضغط إضافة الخبر.', 'text-xs text-emerald-300 mt-3');
+            } catch (error) {
+                setText('admin-add-status', `تعذر الاستجلاب من الرابط: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function addManualNews() {
+            const category = document.getElementById('admin-category')?.value || '';
+            const scope = document.getElementById('admin-scope')?.value || 'local';
+            const aihubSection = document.getElementById('admin-aihub-section')?.value || 'announcements';
+            const title = String(document.getElementById('admin-title')?.value || '').trim();
+            const summary = String(document.getElementById('admin-summary')?.value || '').trim();
+            const source = String(document.getElementById('admin-source')?.value || '').trim();
+            const sourceUrl = String(document.getElementById('admin-source-url')?.value || '').trim();
+            let imageUrl = String(document.getElementById('admin-image-url')?.value || '').trim();
+            const imageFile = document.getElementById('admin-image-file')?.files?.[0];
+
+            if (!imageUrl && imageFile) {
+                imageUrl = await fileToDataUrl(imageFile);
+            }
+
+            setText('admin-add-status', 'جارٍ إضافة الخبر...', 'text-xs text-slate-300 mt-3');
+            try {
+                await apiJson('/api/admin/news', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        category,
+                        scope,
+                        auto_extract: (!title || !summary || !source),
+                        aihub_section: category === 'aihub' ? aihubSection : '',
+                        title,
+                        summary,
+                        source,
+                        source_url: sourceUrl,
+                        image_url: imageUrl,
+                        published_at: new Date().toISOString()
+                    })
+                }, true);
+
+                ['admin-title', 'admin-summary', 'admin-source', 'admin-source-url', 'admin-image-url'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                const fileEl = document.getElementById('admin-image-file');
+                if (fileEl) fileEl.value = '';
+
+                setText('admin-add-status', 'تمت إضافة الخبر بنجاح.', 'text-xs text-emerald-300 mt-3');
+                await Promise.all([loadNews(false), refreshAdminManualList()]);
+            } catch (error) {
+                setText('admin-add-status', `فشل إضافة الخبر: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        function initAdminPanel() {
+            const openBtn = document.getElementById('open-admin-panel');
+            const closeBtn = document.getElementById('close-admin-panel');
+            const loginBtn = document.getElementById('admin-login-btn');
+            const logoutBtn = document.getElementById('admin-logout-btn');
+            const addNewsBtn = document.getElementById('admin-add-news-btn');
+            const fetchLinkBtn = document.getElementById('admin-fetch-link-btn');
+            const refreshListBtn = document.getElementById('admin-refresh-list-btn');
+            const categoryEl = document.getElementById('admin-category');
+            const modal = document.getElementById('admin-modal');
+            const refreshAIBtn = document.getElementById('admin-ai-refresh-btn');
+            const statusAIBtn = document.getElementById('admin-ai-status-btn');
+            const refreshSourcesBtn = document.getElementById('admin-refresh-sources-btn');
+            const manualList = document.getElementById('admin-manual-news-list');
+            const apiBaseInput = document.getElementById('api-base-input');
+            const apiBaseSaveBtn = document.getElementById('api-base-save-btn');
+            const viewCardsBtn = document.getElementById('view-cards-btn');
+            const viewTimelineBtn = document.getElementById('view-timeline-btn');
+
+            if (openBtn) {
+                openBtn.addEventListener('click', async () => {
+                    openAdminModal();
+                    setAdminAuthState(Boolean(APP_STATE.adminToken));
+                    toggleAIHubSectionInput();
+                    if (apiBaseInput) apiBaseInput.value = APP_STATE.apiBase || '';
+                    if (APP_STATE.adminToken) {
+                        await refreshAdminManualList();
+                        await refreshAdminAIStatus();
+                    }
+                });
+            }
+            if (closeBtn) closeBtn.addEventListener('click', closeAdminModal);
+            if (modal) {
+                modal.addEventListener('click', (event) => {
+                    if (event.target === modal) closeAdminModal();
+                });
+            }
+            if (loginBtn) loginBtn.addEventListener('click', adminLogin);
+            if (logoutBtn) logoutBtn.addEventListener('click', adminLogout);
+            if (addNewsBtn) addNewsBtn.addEventListener('click', addManualNews);
+            if (fetchLinkBtn) fetchLinkBtn.addEventListener('click', adminFetchByLink);
+            if (refreshListBtn) refreshListBtn.addEventListener('click', refreshAdminManualList);
+            if (categoryEl) categoryEl.addEventListener('change', toggleAIHubSectionInput);
+            if (refreshAIBtn) refreshAIBtn.addEventListener('click', adminForceAIRefresh);
+            if (statusAIBtn) statusAIBtn.addEventListener('click', refreshAdminAIStatus);
+            if (refreshSourcesBtn) refreshSourcesBtn.addEventListener('click', adminRefreshSources);
+            if (apiBaseSaveBtn) apiBaseSaveBtn.addEventListener('click', saveApiBaseFromInput);
+            if (apiBaseInput) {
+                apiBaseInput.value = APP_STATE.apiBase || '';
+                apiBaseInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        saveApiBaseFromInput();
+                    }
+                });
+            }
+            if (viewCardsBtn) viewCardsBtn.addEventListener('click', () => setViewMode('cards'));
+            if (viewTimelineBtn) viewTimelineBtn.addEventListener('click', () => setViewMode('timeline'));
+
+            if (manualList) {
+                manualList.addEventListener('click', (event) => {
+                    const btn = event.target.closest('.admin-delete-news-btn');
+                    if (!btn) return;
+                    const id = btn.getAttribute('data-news-id');
+                    deleteManualNews(id);
+                });
+            }
+
+            document.addEventListener('click', (event) => {
+                const btn = event.target.closest('.news-page-btn');
+                if (!btn) return;
+                const containerId = btn.getAttribute('data-page-container');
+                const action = btn.getAttribute('data-page-action');
+                changeNewsPage(containerId, action);
+            });
+
+            applyViewModeButtons();
+            discoverApiBase();
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+        initAdminPanel();
+        switchMainTab('arabic');
+        switchArabicSubTab('arabic-local');
+        switchGlobalSubTab('global-war');
+        switchTechAiSubTab('techai-ai');
+        loadNews(false);
+        setInterval(() => loadNews(false), PUBLIC_POLL_MS);
+</script>
 </body>
 </html>
+
