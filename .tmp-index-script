@@ -1,0 +1,1034 @@
+
+        const PUBLIC_POLL_MS = 5 * 60 * 1000;
+        const SAVED_API_BASE = localStorage.getItem('aihub_api_base') || '';
+        const SAVED_VIEW_MODE = localStorage.getItem('aihub_view_mode') || 'cards';
+        const APP_STATE = {
+            adminToken: localStorage.getItem('aihub_admin_token') || '',
+            latestPayload: null,
+            pagination: {},
+            listCache: {},
+            viewMode: SAVED_VIEW_MODE === 'timeline' ? 'timeline' : 'cards',
+            apiBase: SAVED_API_BASE,
+            apiReady: false,
+            discoveringApi: false
+        };
+        const API_PORT_CANDIDATES = ['3000', '3130', '3131', '3132', '3133', '3134', '3135', '8080', '5000'];
+
+        const CATEGORY_META = {
+            war: { label: 'جيوسياسي', icon: 'fa-earth-africa', tone: 'red' },
+            local: { label: 'محلي', icon: 'fa-flag', tone: 'sky' },
+            economy: { label: 'اقتصاد', icon: 'fa-chart-line', tone: 'emerald' },
+            legal: { label: 'القانون', icon: 'fa-gavel', tone: 'amber' },
+            ai: { label: 'الذكاء الاصطناعي', icon: 'fa-brain', tone: 'violet' },
+            tech: { label: 'التقنية', icon: 'fa-microchip', tone: 'cyan' },
+            arabic: { label: 'العربي والمحلي', icon: 'fa-language', tone: 'sky' },
+            global: { label: 'العالمي', icon: 'fa-globe', tone: 'amber' },
+            techai: { label: 'تقنية + AI', icon: 'fa-microchip', tone: 'cyan' }
+        };
+
+        const DYNAMIC_CONTAINER_BY_CATEGORY = {
+            global_war: 'dynamic-global-war-list',
+            global_economy: 'dynamic-global-economy-list',
+            global_local: 'dynamic-global-local-list',
+            arabic_war: 'dynamic-arabic-war-list',
+            arabic_economy: 'dynamic-arabic-economy-list',
+            arabic_local: 'dynamic-arabic-local-list',
+            legal_manual: 'dynamic-legal-manual-list',
+            techai_ai: 'dynamic-techai-ai-list',
+            techai_tech: 'dynamic-techai-tech-list'
+        };
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function escapeAttr(value) {
+            return escapeHtml(value).replace(/`/g, '&#96;');
+        }
+
+        function formatDateTime(value) {
+            if (!value) return '--';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value;
+            return date.toLocaleString('ar-EG', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function normalizeApiBase(base) {
+            const raw = String(base || '').trim();
+            if (!raw) return '';
+            let out = raw;
+            if (!/^https?:\/\//i.test(out)) {
+                out = `${window.location.protocol}//${out}`;
+            }
+            out = out.replace(/\/+$/g, '');
+            return out;
+        }
+
+        function setApiStatus(text, kind = 'muted') {
+            const el = document.getElementById('api-base-status');
+            if (!el) return;
+            const cls = kind === 'ok'
+                ? 'text-xs text-emerald-300 mt-2'
+                : kind === 'error'
+                    ? 'text-xs text-red-300 mt-2'
+                    : 'text-xs text-slate-400 mt-2';
+            el.className = cls;
+            el.textContent = text;
+        }
+
+        function setApiBase(base, persist = true) {
+            const normalized = normalizeApiBase(base);
+            APP_STATE.apiBase = normalized;
+            APP_STATE.apiReady = false;
+            if (!persist) return;
+
+            if (!normalized || normalized === window.location.origin) {
+                localStorage.removeItem('aihub_api_base');
+            } else {
+                localStorage.setItem('aihub_api_base', normalized);
+            }
+        }
+
+        function buildAutoApiCandidates() {
+            const protocol = window.location.protocol || 'http:';
+            const host = window.location.hostname || '127.0.0.1';
+            const activePort = String(window.location.port || '').trim();
+            const ports = [...new Set([activePort, ...API_PORT_CANDIDATES].filter(Boolean))];
+            const hosts = [...new Set([host, '127.0.0.1', 'localhost'])];
+
+            const out = [''];
+            hosts.forEach((h) => {
+                ports.forEach((p) => {
+                    out.push(`${protocol}//${h}:${p}`);
+                });
+            });
+            return [...new Set(out.map((base) => normalizeApiBase(base) || ''))];
+        }
+
+        function buildApiUrl(path, base = '') {
+            const safePath = String(path || '').startsWith('/') ? String(path || '') : `/${String(path || '')}`;
+            if (!base) return safePath;
+            return `${base}${safePath}`;
+        }
+
+        function getOrderedApiBases() {
+            const known = buildAutoApiCandidates();
+            if (APP_STATE.apiBase && !known.includes(APP_STATE.apiBase)) known.unshift(APP_STATE.apiBase);
+            if (APP_STATE.apiBase || APP_STATE.apiBase === '') {
+                return [APP_STATE.apiBase, ...known.filter((x) => x !== APP_STATE.apiBase)];
+            }
+            return known;
+        }
+
+        async function discoverApiBase() {
+            if (APP_STATE.discoveringApi) return APP_STATE.apiReady;
+            APP_STATE.discoveringApi = true;
+            try {
+                const bases = getOrderedApiBases();
+                for (const base of bases) {
+                    const healthUrl = buildApiUrl('/api/health', base);
+                    try {
+                        const response = await fetch(healthUrl, { method: 'GET', headers: { Accept: 'application/json' } });
+                        if (!response.ok) continue;
+                        const payload = await response.json().catch(() => null);
+                        if (!payload || payload.ok !== true) continue;
+                        setApiBase(base, true);
+                        APP_STATE.apiReady = true;
+                        setApiStatus(`تم الاتصال بخادم الأخبار: ${base || 'نفس رابط الصفحة'}`, 'ok');
+                        const input = document.getElementById('api-base-input');
+                        if (input) input.value = APP_STATE.apiBase || '';
+                        return true;
+                    } catch (_) {
+                        // Try next base
+                    }
+                }
+                APP_STATE.apiReady = false;
+                setApiStatus('تعذر اكتشاف خادم API. شغّل server.js ثم أدخل الرابط يدويًا.', 'error');
+                return false;
+            } finally {
+                APP_STATE.discoveringApi = false;
+            }
+        }
+
+        async function fetchApi(path, options = {}) {
+            if (!APP_STATE.apiReady) {
+                await discoverApiBase();
+            }
+            const bases = getOrderedApiBases();
+            let lastError = null;
+
+            for (const base of bases) {
+                const url = buildApiUrl(path, base);
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok || [400, 401, 403].includes(response.status)) {
+                        setApiBase(base, true);
+                        APP_STATE.apiReady = true;
+                        return response;
+                    }
+                    if ([404, 405, 502, 503, 504].includes(response.status)) {
+                        lastError = new Error(`HTTP ${response.status}`);
+                        continue;
+                    }
+                    setApiBase(base, true);
+                    APP_STATE.apiReady = true;
+                    return response;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            APP_STATE.apiReady = false;
+            setApiStatus('فشل الاتصال بـ API. تأكد أن server.js يعمل ثم أعد المحاولة.', 'error');
+            throw (lastError || new Error('تعذر الوصول إلى واجهة الـ API'));
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateString = now.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+            const clock = document.getElementById('real-time-clock');
+            if (clock) clock.innerHTML = `${dateString} - ${timeString}`;
+        }
+
+        function switchMainTab(tabName) {
+            const sections = document.querySelectorAll('.main-content-section');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('.main-tab');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'border-amber-400', 'text-amber-400');
+                button.classList.add('border-transparent', 'text-slate-400');
+            });
+
+            const selectedSection = document.getElementById(`${tabName}-section`);
+            if (!selectedSection) return;
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+
+            const activeBtn = document.getElementById(`main-btn-${tabName}`);
+            if (!activeBtn) return;
+            activeBtn.classList.add('active');
+            activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        function switchSubTab(subTabId) {
+            const subContents = document.querySelectorAll('.sub-content-section');
+            subContents.forEach((content) => {
+                content.classList.remove('block');
+                content.classList.add('hidden');
+            });
+
+            const subBtns = document.querySelectorAll('.sub-tab');
+            subBtns.forEach((btn) => {
+                btn.classList.remove('active', 'bg-red-500', 'text-white');
+                btn.classList.add('text-slate-300', 'bg-slate-800');
+            });
+
+            const selectedSub = document.getElementById(subTabId);
+            if (!selectedSub) return;
+            selectedSub.classList.remove('hidden');
+            selectedSub.classList.add('block');
+
+            const activeBtn = document.getElementById(`sub-btn-${subTabId}`);
+            if (!activeBtn) return;
+            activeBtn.classList.add('active');
+            activeBtn.classList.remove('text-slate-300', 'bg-slate-800');
+        }
+
+        function switchAIHubSubTab(tabId) {
+            const sections = document.querySelectorAll('.aihub-content-section');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('.aihub-sub-tab');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'text-white');
+                button.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+            });
+
+            const selectedSection = document.getElementById(tabId);
+            const selectedButton = document.getElementById(`sub-btn-${tabId}`);
+            if (!selectedSection || !selectedButton) return;
+
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+            selectedButton.classList.add('active', 'text-white');
+            selectedButton.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+        }
+
+        function switchArabicSubTab(tabId) {
+            const sections = document.querySelectorAll('.arabic-content-section');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('#arabic-section .sub-tab');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'bg-red-500', 'text-white');
+                button.classList.add('text-slate-300', 'bg-slate-800');
+            });
+
+            const selectedSection = document.getElementById(tabId);
+            const selectedButton = document.getElementById(`sub-btn-${tabId}`);
+            if (!selectedSection || !selectedButton) return;
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+            selectedButton.classList.add('active', 'bg-red-500', 'text-white');
+            selectedButton.classList.remove('text-slate-300', 'bg-slate-800');
+        }
+
+        function switchGlobalSubTab(tabId) {
+            const sections = document.querySelectorAll('.global-content-section');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('#global-section .sub-tab');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'bg-red-500', 'text-white');
+                button.classList.add('text-slate-300', 'bg-slate-800');
+            });
+
+            const selectedSection = document.getElementById(tabId);
+            const selectedButton = document.getElementById(`sub-btn-${tabId}`);
+            if (!selectedSection || !selectedButton) return;
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+            selectedButton.classList.add('active', 'bg-red-500', 'text-white');
+            selectedButton.classList.remove('text-slate-300', 'bg-slate-800');
+        }
+
+        function switchTechAiSubTab(tabId) {
+            const sections = document.querySelectorAll('.techai-content-section');
+            sections.forEach((section) => {
+                section.classList.remove('block');
+                section.classList.add('hidden');
+            });
+
+            const buttons = document.querySelectorAll('#techai-section .sub-tab');
+            buttons.forEach((button) => {
+                button.classList.remove('active', 'bg-red-500', 'text-white');
+                button.classList.add('text-slate-300', 'bg-slate-800');
+            });
+
+            const selectedSection = document.getElementById(tabId);
+            const selectedButton = document.getElementById(`sub-btn-${tabId}`);
+            if (!selectedSection || !selectedButton) return;
+            selectedSection.classList.remove('hidden');
+            selectedSection.classList.add('block');
+            selectedButton.classList.add('active', 'bg-red-500', 'text-white');
+            selectedButton.classList.remove('text-slate-300', 'bg-slate-800');
+        }
+
+        function switchScopeTab(category, scope) {
+            const scopes = ['global', 'local'];
+            scopes.forEach((name) => {
+                const panel = document.getElementById(`${category}-scope-${name}`);
+                const btn = document.getElementById(`scope-btn-${category}-${name}`);
+                if (panel) {
+                    if (name === scope) {
+                        panel.classList.remove('hidden');
+                        panel.classList.add('block');
+                    } else {
+                        panel.classList.remove('block');
+                        panel.classList.add('hidden');
+                    }
+                }
+                if (btn) {
+                    if (name === scope) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+        }
+
+        function sourceButton(item) {
+            if (!item?.source_url) {
+                return '<span class="text-[11px] text-slate-500">لا يوجد رابط مصدر</span>';
+            }
+            return `<a href="${escapeAttr(item.source_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-amber-600 hover:bg-amber-500 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-link"></i> مصدر الخبر</a>`;
+        }
+
+        function applyViewModeButtons() {
+            const cardsBtn = document.getElementById('view-cards-btn');
+            const timelineBtn = document.getElementById('view-timeline-btn');
+            if (cardsBtn) cardsBtn.classList.toggle('active', APP_STATE.viewMode === 'cards');
+            if (timelineBtn) timelineBtn.classList.toggle('active', APP_STATE.viewMode === 'timeline');
+        }
+
+        function rerenderAllLists() {
+            Object.keys(APP_STATE.listCache || {}).forEach((containerId) => {
+                const cache = APP_STATE.listCache[containerId];
+                if (!cache) return;
+                renderNewsList(containerId, cache.items, cache.tone, cache.emptyText);
+            });
+        }
+
+        function setViewMode(mode) {
+            const normalized = mode === 'timeline' ? 'timeline' : 'cards';
+            APP_STATE.viewMode = normalized;
+            localStorage.setItem('aihub_view_mode', normalized);
+            applyViewModeButtons();
+            rerenderAllLists();
+        }
+
+        function buildNewsCard(item, tone = 'amber') {
+            const toneMap = {
+                red: 'border-red-700/60',
+                emerald: 'border-emerald-700/60',
+                amber: 'border-amber-700/60',
+                violet: 'border-violet-700/60',
+                cyan: 'border-cyan-700/60',
+                sky: 'border-sky-700/60'
+            };
+            const borderTone = toneMap[tone] || 'border-slate-700';
+            const image = item?.image_url
+                ? `<div class="h-32 w-full overflow-hidden rounded-lg mb-3 bg-slate-900"><img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.title || 'news')}" class="w-full h-full object-cover" onerror="this.style.display='none';"></div>`
+                : '';
+
+            return `
+                <article class="bg-slate-800/95 rounded-xl border ${borderTone} p-4 shadow">
+                    ${image}
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300">${escapeHtml(item.source || 'مصدر غير متاح')}</span>
+                        <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                    </div>
+                    <h4 class="text-sm font-bold text-slate-100 mb-2">${escapeHtml(item.title || 'بدون عنوان')}</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">${escapeHtml(item.summary || '')}</p>
+                    <div class="flex items-center justify-between gap-2">
+                        ${sourceButton(item)}
+                        ${item.origin === 'manual' ? '<span class="text-[10px] text-cyan-300 border border-cyan-700/60 px-2 py-1 rounded">مضاف يدويًا</span>' : ''}
+                    </div>
+                </article>
+            `;
+        }
+
+        function buildTimelineItem(item, tone = 'amber') {
+            const toneMap = {
+                red: 'border-red-600 text-red-300',
+                emerald: 'border-emerald-600 text-emerald-300',
+                amber: 'border-amber-600 text-amber-300',
+                violet: 'border-violet-600 text-violet-300',
+                cyan: 'border-cyan-600 text-cyan-300',
+                sky: 'border-sky-600 text-sky-300'
+            };
+            const toneClass = toneMap[tone] || 'border-slate-600 text-slate-300';
+            const image = item?.image_url
+                ? `<div class="h-28 md:h-32 w-full overflow-hidden rounded-lg mb-3 bg-slate-900"><img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.title || 'news')}" class="w-full h-full object-cover" onerror="this.style.display='none';"></div>`
+                : '';
+
+            return `
+                <article class="relative pr-5 border-r-2 ${toneClass}">
+                    <div class="absolute -right-[7px] top-3 w-3 h-3 rounded-full bg-current"></div>
+                    <div class="bg-slate-800/95 rounded-xl border border-slate-700 p-4 shadow mb-3">
+                        ${image}
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300">${escapeHtml(item.source || 'مصدر غير متاح')}</span>
+                            <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-slate-100 mb-2">${escapeHtml(item.title || 'بدون عنوان')}</h4>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">${escapeHtml(item.summary || '')}</p>
+                        <div class="flex items-center justify-between gap-2">
+                            ${sourceButton(item)}
+                            ${item.origin === 'manual' ? '<span class="text-[10px] text-cyan-300 border border-cyan-700/60 px-2 py-1 rounded">مضاف يدويًا</span>' : ''}
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderNewsList(containerId, items, tone, emptyText = 'لا توجد بيانات حالياً.') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const allItems = Array.isArray(items) ? items : [];
+            APP_STATE.listCache[containerId] = { items: allItems, tone, emptyText };
+            if (!container.dataset.defaultClass) {
+                container.dataset.defaultClass = container.className;
+            }
+            const isTimeline = APP_STATE.viewMode === 'timeline';
+            container.className = isTimeline ? 'space-y-2' : container.dataset.defaultClass;
+
+            if (!allItems.length) {
+                container.innerHTML = `<div class="text-xs text-slate-400 bg-slate-900/60 border border-slate-700 rounded-lg p-3">${escapeHtml(emptyText)}</div>`;
+                return;
+            }
+
+            const pageSize = 10;
+            const totalPages = Math.max(1, Math.ceil(allItems.length / pageSize));
+            const safePage = Math.min(Math.max(Number(APP_STATE.pagination[containerId] || 1), 1), totalPages);
+            APP_STATE.pagination[containerId] = safePage;
+
+            const start = (safePage - 1) * pageSize;
+            const visibleItems = allItems.slice(start, start + pageSize);
+            let html = visibleItems
+                .map((item) => (isTimeline ? buildTimelineItem(item, tone) : buildNewsCard(item, tone)))
+                .join('');
+
+            if (allItems.length > pageSize) {
+                if (isTimeline) {
+                    html += `
+                        <div class="bg-slate-900/60 border border-slate-700 rounded-lg p-3 flex items-center justify-between gap-2">
+                            <button data-page-container="${escapeAttr(containerId)}" data-page-action="prev" class="news-page-btn text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded ${safePage <= 1 ? 'opacity-40 cursor-not-allowed' : ''}" ${safePage <= 1 ? 'disabled' : ''}>السابق</button>
+                            <span class="text-xs text-slate-300">صفحة ${safePage} من ${totalPages} | إجمالي الأخبار ${allItems.length}</span>
+                            <button data-page-container="${escapeAttr(containerId)}" data-page-action="next" class="news-page-btn text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded ${safePage >= totalPages ? 'opacity-40 cursor-not-allowed' : ''}" ${safePage >= totalPages ? 'disabled' : ''}>التالي</button>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="md:col-span-2 xl:col-span-3 bg-slate-900/60 border border-slate-700 rounded-lg p-3 flex items-center justify-between gap-2">
+                            <button data-page-container="${escapeAttr(containerId)}" data-page-action="prev" class="news-page-btn text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded ${safePage <= 1 ? 'opacity-40 cursor-not-allowed' : ''}" ${safePage <= 1 ? 'disabled' : ''}>السابق</button>
+                            <span class="text-xs text-slate-300">صفحة ${safePage} من ${totalPages} | إجمالي الأخبار ${allItems.length}</span>
+                            <button data-page-container="${escapeAttr(containerId)}" data-page-action="next" class="news-page-btn text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded ${safePage >= totalPages ? 'opacity-40 cursor-not-allowed' : ''}" ${safePage >= totalPages ? 'disabled' : ''}>التالي</button>
+                        </div>
+                    `;
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        function changeNewsPage(containerId, action) {
+            const cache = APP_STATE.listCache[containerId];
+            if (!cache) return;
+            const totalPages = Math.max(1, Math.ceil(cache.items.length / 10));
+            let current = Number(APP_STATE.pagination[containerId] || 1);
+            if (action === 'next') current += 1;
+            if (action === 'prev') current -= 1;
+            current = Math.min(Math.max(current, 1), totalPages);
+            APP_STATE.pagination[containerId] = current;
+            renderNewsList(containerId, cache.items, cache.tone, cache.emptyText);
+        }
+
+        function splitAiHub(items) {
+            const out = { announcements: [], tools: [], community: [], tutorials: [] };
+            (Array.isArray(items) ? items : []).forEach((item) => {
+                const section = item?.aihub_section;
+                if (section === 'tools') out.tools.push(item);
+                else if (section === 'community') out.community.push(item);
+                else if (section === 'tutorials') out.tutorials.push(item);
+                else out.announcements.push(item);
+            });
+            return out;
+        }
+
+        function ensureScopedPair(scopedMap, category, fallbackItems) {
+            const fromApi = scopedMap?.[category] || {};
+            const fallback = Array.isArray(fallbackItems) ? fallbackItems : [];
+            const apiGlobal = Array.isArray(fromApi.global) ? fromApi.global : [];
+            const apiLocal = Array.isArray(fromApi.local) ? fromApi.local : [];
+
+            if (apiGlobal.length || apiLocal.length) {
+                return {
+                    global: apiGlobal,
+                    local: apiLocal
+                };
+            }
+
+            const global = [];
+            const local = [];
+            fallback.forEach((item) => {
+                if (String(item?.scope || '').toLowerCase() === 'local') local.push(item);
+                else global.push(item);
+            });
+            return { global, local };
+        }
+
+        function renderTicker(news) {
+            const track = document.getElementById('news-ticker-track');
+            if (!track) return;
+
+            const orderedCategories = ['aihub', 'war', 'local', 'economy', 'legal', 'ai', 'tech'];
+            const headlines = [];
+            orderedCategories.forEach((category) => {
+                const label = CATEGORY_META[category]?.label || category;
+                (Array.isArray(news?.[category]) ? news[category] : []).slice(0, 4).forEach((item) => {
+                    headlines.push({ label, title: item.title || '' });
+                });
+            });
+
+            if (!headlines.length) {
+                track.innerHTML = '<span class="ticker-chip"><i class="fas fa-stream text-amber-400"></i> لا توجد أخبار لعرضها حالياً.</span>';
+                return;
+            }
+
+            const doubled = [...headlines, ...headlines];
+            track.innerHTML = doubled.map((entry) => `
+                <span class="ticker-chip">
+                    <i class="fas fa-circle text-[8px] text-amber-400"></i>
+                    <strong class="text-amber-300">${escapeHtml(entry.label)}</strong>
+                    <span>${escapeHtml(entry.title)}</span>
+                </span>
+            `).join('');
+            const durationSec = Math.max(95, headlines.length * 8);
+            track.style.animationDuration = `${durationSec}s`;
+        }
+
+        function renderMergedTabs(news, payload) {
+            const scoped = payload?.news_scopes || {};
+            const warScoped = ensureScopedPair(scoped, 'war', news?.war || []);
+            const localScoped = ensureScopedPair(scoped, 'local', news?.local || []);
+            const economyScoped = ensureScopedPair(scoped, 'economy', news?.economy || []);
+            const aiScoped = ensureScopedPair(scoped, 'ai', news?.ai || []);
+            const techScoped = ensureScopedPair(scoped, 'tech', news?.tech || []);
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_local, localScoped.local, 'sky', 'لا توجد أخبار عربية محلية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_war, warScoped.local, 'sky', 'لا توجد أخبار جيوسياسية عربية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_economy, economyScoped.local, 'sky', 'لا توجد أخبار اقتصادية عربية حالياً.');
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_war, warScoped.global, 'red', 'لا توجد أخبار جيوسياسية عالمية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_economy, economyScoped.global, 'emerald', 'لا توجد أخبار اقتصادية عالمية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_local, localScoped.global, 'amber', 'لا توجد أخبار محلية/إقليمية عالمية حالياً.');
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.legal_manual, news?.legal || [], 'amber', 'لا توجد أخبار قانونية مضافة يدويًا بعد.');
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.techai_ai, aiScoped.global, 'violet', 'لا توجد أخبار AI عالمية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.techai_tech, techScoped.global, 'cyan', 'لا توجد أخبار تقنية عالمية حالياً.');
+
+            const sections = payload?.aihub_sections || splitAiHub(news?.aihub || []);
+            renderNewsList('dynamic-aihub-announcements-list', sections.announcements || [], 'sky', 'لا توجد إعلانات حالياً.');
+            renderNewsList('dynamic-aihub-tools-list', sections.tools || [], 'sky', 'لا توجد أدوات مضافة حالياً.');
+            renderNewsList('dynamic-aihub-community-list', sections.community || [], 'sky', 'لا توجد فعاليات حالياً.');
+            renderNewsList('dynamic-aihub-tutorials-list', sections.tutorials || [], 'sky', 'لا توجد شروحات مضافة حالياً.');
+        }
+
+        function renderMarketSnapshot(payload) {
+            const grid = document.getElementById('macro-indicators-grid');
+            const meta = document.getElementById('macro-indicators-meta');
+            if (!grid || !meta) return;
+
+            const indicators = Array.isArray(payload?.indicators) ? payload.indicators : [];
+            if (!indicators.length) {
+                grid.innerHTML = '<div class="col-span-full text-xs text-slate-400 bg-slate-900/60 border border-slate-700 rounded-lg p-3">لا توجد قراءات لحظية متاحة حالياً.</div>';
+                meta.textContent = payload?.error ? `تعذر تحميل المؤشرات: ${payload.error}` : 'تعذر تحميل المؤشرات حالياً.';
+                return;
+            }
+
+            grid.innerHTML = indicators.map((item) => {
+                const isUp = Number(item.change_percent || 0) >= 0;
+                const price = item.price === null || item.price === undefined ? '--' : Number(item.price).toLocaleString('en-US', { maximumFractionDigits: 3 });
+                const chg = item.change_percent === null || item.change_percent === undefined ? '--' : `${isUp ? '+' : ''}${Number(item.change_percent).toFixed(2)}%`;
+                return `
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                        <p class="text-[11px] text-slate-400 mb-1">${escapeHtml(item.label || '')}</p>
+                        <p class="text-lg font-bold ${isUp ? 'text-emerald-400' : 'text-red-400'}">${escapeHtml(price)}</p>
+                        <p class="text-[10px] ${isUp ? 'text-emerald-500' : 'text-red-500'}">${escapeHtml(chg)}</p>
+                    </div>
+                `;
+            }).join('');
+
+            meta.textContent = `آخر تحديث للمؤشرات: ${formatDateTime(payload.updated_at)} | المصدر: Yahoo Finance (بيانات لحظية قد تكون متأخرة دقائق)`;
+        }
+
+        async function loadMarketSnapshot() {
+            try {
+                const response = await fetchApi('/api/market-snapshot', { method: 'GET', headers: { 'Accept': 'application/json' } });
+                const payload = await response.json();
+                renderMarketSnapshot(payload);
+            } catch (error) {
+                renderMarketSnapshot({ ok: false, error: error.message, indicators: [] });
+            }
+        }
+
+        async function loadNews(force = false) {
+            try {
+                const response = await fetchApi(`/api/news${force ? '?force=1' : ''}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const payload = await response.json();
+                if (!payload?.ok) throw new Error(payload?.error || 'تعذر جلب الأخبار');
+
+                APP_STATE.latestPayload = payload;
+                renderMergedTabs(payload.news, payload);
+                renderTicker(payload.news);
+                loadMarketSnapshot();
+            } catch (error) {
+                const track = document.getElementById('news-ticker-track');
+                if (track) {
+                    track.innerHTML = `<span class="ticker-chip"><i class="fas fa-triangle-exclamation text-red-400"></i> تعذر جلب الأخبار: ${escapeHtml(error.message)} | تحقق من تشغيل server.js</span>`;
+                }
+            }
+        }
+
+        function openAdminModal() {
+            const modal = document.getElementById('admin-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeAdminModal() {
+            const modal = document.getElementById('admin-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function setAdminAuthState(isLoggedIn) {
+            const loginView = document.getElementById('admin-login-view');
+            const panelView = document.getElementById('admin-panel-view');
+            if (!loginView || !panelView) return;
+            if (isLoggedIn) {
+                loginView.classList.add('hidden');
+                panelView.classList.remove('hidden');
+            } else {
+                panelView.classList.add('hidden');
+                loginView.classList.remove('hidden');
+            }
+        }
+
+        async function saveApiBaseFromInput() {
+            const input = document.getElementById('api-base-input');
+            const value = String(input?.value || '').trim();
+            setApiBase(value, true);
+            setApiStatus('جارٍ اختبار رابط API...', 'muted');
+            const ok = await discoverApiBase();
+            if (!ok) {
+                setApiStatus('فشل اختبار رابط API. تأكد من الرابط وتشغيل السيرفر.', 'error');
+            }
+        }
+
+        async function apiJson(url, options = {}, needsAuth = false) {
+            const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+            if (needsAuth && APP_STATE.adminToken) {
+                headers.Authorization = `Bearer ${APP_STATE.adminToken}`;
+            }
+            const response = await fetchApi(url, { ...options, headers });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload?.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
+            return payload;
+        }
+
+        function toggleAIHubSectionInput() {
+            const categoryEl = document.getElementById('admin-category');
+            const sectionEl = document.getElementById('admin-aihub-section');
+            const scopeEl = document.getElementById('admin-scope');
+            if (!categoryEl || !sectionEl || !scopeEl) return;
+            if (categoryEl.value === 'aihub') {
+                sectionEl.classList.remove('hidden');
+                scopeEl.classList.add('hidden');
+            } else {
+                sectionEl.classList.add('hidden');
+                scopeEl.classList.remove('hidden');
+                if (categoryEl.value === 'local') scopeEl.value = 'local';
+            }
+        }
+
+        function fileToDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('تعذر قراءة ملف الصورة'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function setText(id, text, className) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text;
+            if (className) el.className = className;
+        }
+
+        function renderAdminManualList(items) {
+            const target = document.getElementById('admin-manual-news-list');
+            if (!target) return;
+            if (!Array.isArray(items) || !items.length) {
+                target.innerHTML = '<p class="text-xs text-slate-400">لا توجد أخبار مضافة يدويًا بعد.</p>';
+                return;
+            }
+            target.innerHTML = items.slice(0, 10).map((item) => `
+                <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+                    <div class="flex items-start justify-between gap-2 mb-1">
+                        <h5 class="text-xs font-bold text-slate-100">${escapeHtml(item.title || '')}</h5>
+                        <span class="text-[10px] text-slate-400">${escapeHtml(item.category || '')} ${item.scope ? `| ${escapeHtml(item.scope)}` : ''}</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-[10px] text-slate-400">${escapeHtml(item.source || '')}</span>
+                        <div class="flex items-center gap-2">
+                            ${sourceButton(item)}
+                            <button class="admin-delete-news-btn text-[10px] bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded" data-news-id="${escapeAttr(item.id || '')}">حذف</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function deleteManualNews(id) {
+            if (!id) return;
+            setText('admin-add-status', 'جارٍ حذف الخبر...', 'text-xs text-slate-300 mt-3');
+            try {
+                await apiJson('/api/admin/news/delete', {
+                    method: 'POST',
+                    body: JSON.stringify({ id })
+                }, true);
+                setText('admin-add-status', 'تم حذف الخبر.', 'text-xs text-emerald-300 mt-3');
+                await Promise.all([refreshAdminManualList(), loadNews(false)]);
+            } catch (error) {
+                setText('admin-add-status', `تعذر حذف الخبر: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function refreshAdminManualList() {
+            try {
+                const payload = await apiJson('/api/admin/news', { method: 'GET' }, true);
+                renderAdminManualList(payload.items || []);
+            } catch (error) {
+                renderAdminManualList([]);
+                setText('admin-add-status', `تعذر تحميل قائمة الأخبار اليدوية: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function refreshAdminAIStatus() {
+            try {
+                const payload = await apiJson('/api/admin/auto-status', { method: 'GET' }, true);
+                const nextRun = payload.next_run_at ? formatDateTime(payload.next_run_at) : '--';
+                const lastRun = payload.updated_at ? formatDateTime(payload.updated_at) : '--';
+                const err = payload.error ? ` | آخر خطأ: ${payload.error}` : '';
+                setText('admin-ai-status', `آخر تحديث: ${lastRun} | القادم: ${nextRun} | المصدر: ${payload.source || '--'}${err}`, 'text-xs text-slate-300');
+            } catch (error) {
+                setText('admin-ai-status', `تعذر جلب حالة التحديث: ${error.message}`, 'text-xs text-red-300');
+            }
+        }
+
+        async function adminForceAIRefresh() {
+            setText('admin-ai-status', 'جارٍ تنفيذ تحديث AI...', 'text-xs text-cyan-300');
+            try {
+                const payload = await apiJson('/api/admin/refresh-ai', { method: 'POST' }, true);
+                await loadNews(false);
+                await refreshAdminAIStatus();
+                setText('admin-ai-status', `تم التحديث بنجاح. المصدر: ${payload.source || '--'} | وقت التنفيذ: ${formatDateTime(payload.updated_at)}`, 'text-xs text-emerald-300');
+            } catch (error) {
+                setText('admin-ai-status', `فشل التحديث الفوري: ${error.message}`, 'text-xs text-red-300');
+            }
+        }
+
+        async function adminRefreshSources() {
+            const category = String(document.getElementById('admin-refresh-category')?.value || 'all');
+            setText('admin-refresh-status', 'جارٍ تحديث المصادر الآن...', 'text-xs text-cyan-300 mt-2');
+            try {
+                const payload = await apiJson('/api/admin/refresh-sources', {
+                    method: 'POST',
+                    body: JSON.stringify({ category })
+                }, true);
+                setText('admin-refresh-status', `تم التحديث بنجاح: ${payload.source} | ${formatDateTime(payload.updated_at)}`, 'text-xs text-emerald-300 mt-2');
+                await loadNews(false);
+            } catch (error) {
+                setText('admin-refresh-status', `فشل تحديث المصادر: ${error.message}`, 'text-xs text-red-300 mt-2');
+            }
+        }
+
+        async function adminLogin() {
+            const passwordEl = document.getElementById('admin-password');
+            const password = String(passwordEl?.value || '').trim();
+            if (!password) {
+                setText('admin-login-status', 'يرجى إدخال كلمة المرور.', 'text-xs text-red-300 mt-3');
+                return;
+            }
+
+            setText('admin-login-status', 'جارٍ التحقق...', 'text-xs text-slate-300 mt-3');
+            try {
+                const payload = await apiJson('/api/admin/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ password })
+                });
+                APP_STATE.adminToken = payload.token;
+                localStorage.setItem('aihub_admin_token', payload.token);
+                setAdminAuthState(true);
+                setText('admin-add-status', 'يمكنك الآن إضافة الأخبار.', 'text-xs text-emerald-300 mt-3');
+                await refreshAdminManualList();
+                await refreshAdminAIStatus();
+            } catch (error) {
+                const apiHint = APP_STATE.apiBase ? ` | API: ${APP_STATE.apiBase}` : '';
+                setText('admin-login-status', `فشل تسجيل الدخول: ${error.message}${apiHint}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function adminLogout() {
+            try {
+                await apiJson('/api/admin/logout', { method: 'POST' }, true);
+            } catch (_) {}
+            APP_STATE.adminToken = '';
+            localStorage.removeItem('aihub_admin_token');
+            setAdminAuthState(false);
+            setText('admin-login-status', 'تم تسجيل الخروج.', 'text-xs text-slate-300 mt-3');
+        }
+
+        async function adminFetchByLink() {
+            const sourceUrl = String(document.getElementById('admin-source-url')?.value || '').trim();
+            const category = document.getElementById('admin-category')?.value || 'local';
+            if (!sourceUrl) {
+                setText('admin-add-status', 'أضف رابط المصدر أولاً.', 'text-xs text-red-300 mt-3');
+                return;
+            }
+
+            setText('admin-add-status', 'جارٍ استجلاب بيانات الخبر من الرابط...', 'text-xs text-cyan-300 mt-3');
+            try {
+                const payload = await apiJson('/api/admin/news/extract', {
+                    method: 'POST',
+                    body: JSON.stringify({ source_url: sourceUrl, category })
+                }, true);
+                const ex = payload.extracted || {};
+                if (ex.title) document.getElementById('admin-title').value = ex.title;
+                if (ex.summary) document.getElementById('admin-summary').value = ex.summary;
+                if (ex.source) document.getElementById('admin-source').value = ex.source;
+                if (ex.image_url) document.getElementById('admin-image-url').value = ex.image_url;
+                if (ex.scope && document.getElementById('admin-scope')) {
+                    document.getElementById('admin-scope').value = ex.scope;
+                }
+                setText('admin-add-status', 'تم استجلاب البيانات بنجاح. راجعها ثم اضغط إضافة الخبر.', 'text-xs text-emerald-300 mt-3');
+            } catch (error) {
+                setText('admin-add-status', `تعذر الاستجلاب من الرابط: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function addManualNews() {
+            const category = document.getElementById('admin-category')?.value || '';
+            const scope = document.getElementById('admin-scope')?.value || 'local';
+            const aihubSection = document.getElementById('admin-aihub-section')?.value || 'announcements';
+            const title = String(document.getElementById('admin-title')?.value || '').trim();
+            const summary = String(document.getElementById('admin-summary')?.value || '').trim();
+            const source = String(document.getElementById('admin-source')?.value || '').trim();
+            const sourceUrl = String(document.getElementById('admin-source-url')?.value || '').trim();
+            let imageUrl = String(document.getElementById('admin-image-url')?.value || '').trim();
+            const imageFile = document.getElementById('admin-image-file')?.files?.[0];
+
+            if (!imageUrl && imageFile) {
+                imageUrl = await fileToDataUrl(imageFile);
+            }
+
+            setText('admin-add-status', 'جارٍ إضافة الخبر...', 'text-xs text-slate-300 mt-3');
+            try {
+                await apiJson('/api/admin/news', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        category,
+                        scope,
+                        auto_extract: (!title || !summary || !source),
+                        aihub_section: category === 'aihub' ? aihubSection : '',
+                        title,
+                        summary,
+                        source,
+                        source_url: sourceUrl,
+                        image_url: imageUrl,
+                        published_at: new Date().toISOString()
+                    })
+                }, true);
+
+                ['admin-title', 'admin-summary', 'admin-source', 'admin-source-url', 'admin-image-url'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                const fileEl = document.getElementById('admin-image-file');
+                if (fileEl) fileEl.value = '';
+
+                setText('admin-add-status', 'تمت إضافة الخبر بنجاح.', 'text-xs text-emerald-300 mt-3');
+                await Promise.all([loadNews(false), refreshAdminManualList()]);
+            } catch (error) {
+                setText('admin-add-status', `فشل إضافة الخبر: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        function initAdminPanel() {
+            const openBtn = document.getElementById('open-admin-panel');
+            const closeBtn = document.getElementById('close-admin-panel');
+            const loginBtn = document.getElementById('admin-login-btn');
+            const logoutBtn = document.getElementById('admin-logout-btn');
+            const addNewsBtn = document.getElementById('admin-add-news-btn');
+            const fetchLinkBtn = document.getElementById('admin-fetch-link-btn');
+            const refreshListBtn = document.getElementById('admin-refresh-list-btn');
+            const categoryEl = document.getElementById('admin-category');
+            const modal = document.getElementById('admin-modal');
+            const refreshAIBtn = document.getElementById('admin-ai-refresh-btn');
+            const statusAIBtn = document.getElementById('admin-ai-status-btn');
+            const refreshSourcesBtn = document.getElementById('admin-refresh-sources-btn');
+            const manualList = document.getElementById('admin-manual-news-list');
+            const apiBaseInput = document.getElementById('api-base-input');
+            const apiBaseSaveBtn = document.getElementById('api-base-save-btn');
+            const viewCardsBtn = document.getElementById('view-cards-btn');
+            const viewTimelineBtn = document.getElementById('view-timeline-btn');
+
+            if (openBtn) {
+                openBtn.addEventListener('click', async () => {
+                    openAdminModal();
+                    setAdminAuthState(Boolean(APP_STATE.adminToken));
+                    toggleAIHubSectionInput();
+                    if (apiBaseInput) apiBaseInput.value = APP_STATE.apiBase || '';
+                    if (APP_STATE.adminToken) {
+                        await refreshAdminManualList();
+                        await refreshAdminAIStatus();
+                    }
+                });
+            }
+            if (closeBtn) closeBtn.addEventListener('click', closeAdminModal);
+            if (modal) {
+                modal.addEventListener('click', (event) => {
+                    if (event.target === modal) closeAdminModal();
+                });
+            }
+            if (loginBtn) loginBtn.addEventListener('click', adminLogin);
+            if (logoutBtn) logoutBtn.addEventListener('click', adminLogout);
+            if (addNewsBtn) addNewsBtn.addEventListener('click', addManualNews);
+            if (fetchLinkBtn) fetchLinkBtn.addEventListener('click', adminFetchByLink);
+            if (refreshListBtn) refreshListBtn.addEventListener('click', refreshAdminManualList);
+            if (categoryEl) categoryEl.addEventListener('change', toggleAIHubSectionInput);
+            if (refreshAIBtn) refreshAIBtn.addEventListener('click', adminForceAIRefresh);
+            if (statusAIBtn) statusAIBtn.addEventListener('click', refreshAdminAIStatus);
+            if (refreshSourcesBtn) refreshSourcesBtn.addEventListener('click', adminRefreshSources);
+            if (apiBaseSaveBtn) apiBaseSaveBtn.addEventListener('click', saveApiBaseFromInput);
+            if (apiBaseInput) {
+                apiBaseInput.value = APP_STATE.apiBase || '';
+                apiBaseInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        saveApiBaseFromInput();
+                    }
+                });
+            }
+            if (viewCardsBtn) viewCardsBtn.addEventListener('click', () => setViewMode('cards'));
+            if (viewTimelineBtn) viewTimelineBtn.addEventListener('click', () => setViewMode('timeline'));
+
+            if (manualList) {
+                manualList.addEventListener('click', (event) => {
+                    const btn = event.target.closest('.admin-delete-news-btn');
+                    if (!btn) return;
+                    const id = btn.getAttribute('data-news-id');
+                    deleteManualNews(id);
+                });
+            }
+
+            document.addEventListener('click', (event) => {
+                const btn = event.target.closest('.news-page-btn');
+                if (!btn) return;
+                const containerId = btn.getAttribute('data-page-container');
+                const action = btn.getAttribute('data-page-action');
+                changeNewsPage(containerId, action);
+            });
+
+            applyViewModeButtons();
+            discoverApiBase();
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+        initAdminPanel();
+        switchMainTab('arabic');
+        switchArabicSubTab('arabic-local');
+        switchGlobalSubTab('global-war');
+        switchTechAiSubTab('techai-ai');
+        loadNews(false);
+        setInterval(() => loadNews(false), PUBLIC_POLL_MS);
+
