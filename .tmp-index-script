@@ -1,18 +1,27 @@
 
         const PUBLIC_POLL_MS = 5 * 60 * 1000;
+        const REQUIRED_API_SIGNATURE = 'aihub-news-v4';
         const SAVED_API_BASE = localStorage.getItem('aihub_api_base') || '';
         const SAVED_VIEW_MODE = localStorage.getItem('aihub_view_mode') || 'cards';
+        const INSTALL_BANNER_DISMISS_KEY = 'aihub_install_prompt_dismissed';
+        const API_REQUEST_TIMEOUT_MS = 900;
+        const API_RETRY_COOLDOWN_MS = 30000;
+        const API_BLOCK_TTL_MS = 5 * 60 * 1000;
         const APP_STATE = {
-            adminToken: localStorage.getItem('aihub_admin_token') || '',
+            adminToken: '',
             latestPayload: null,
             pagination: {},
             listCache: {},
             viewMode: SAVED_VIEW_MODE === 'timeline' ? 'timeline' : 'cards',
             apiBase: SAVED_API_BASE,
             apiReady: false,
-            discoveringApi: false
+            discoveringApi: false,
+            deferredInstallPrompt: null,
+            installBannerShown: false,
+            apiBlockedBases: {},
+            lastApiFailureAt: 0
         };
-        const API_PORT_CANDIDATES = ['3000', '3130', '3131', '3132', '3133', '3134', '3135', '8080', '5000'];
+        const API_PORT_CANDIDATES = ['3000', '3130'];
 
         const CATEGORY_META = {
             war: { label: 'جيوسياسي', icon: 'fa-earth-africa', tone: 'red' },
@@ -21,6 +30,7 @@
             legal: { label: 'القانون', icon: 'fa-gavel', tone: 'amber' },
             ai: { label: 'الذكاء الاصطناعي', icon: 'fa-brain', tone: 'violet' },
             tech: { label: 'التقنية', icon: 'fa-microchip', tone: 'cyan' },
+            aihub: { label: 'AI HUB', icon: 'fa-rocket', tone: 'sky' },
             arabic: { label: 'العربي والمحلي', icon: 'fa-language', tone: 'sky' },
             global: { label: 'العالمي', icon: 'fa-globe', tone: 'amber' },
             techai: { label: 'تقنية + AI', icon: 'fa-microchip', tone: 'cyan' }
@@ -36,6 +46,60 @@
             legal_manual: 'dynamic-legal-manual-list',
             techai_ai: 'dynamic-techai-ai-list',
             techai_tech: 'dynamic-techai-tech-list'
+        };
+
+        const STATIC_LOCAL_FALLBACK = {
+            local: [
+                {
+                    title: 'متابعة محلية: مصر والشأن الداخلي',
+                    summary: 'تجميع موجز للأخبار المحلية المصرية من مصادر متعددة لحين عودة التغذية المباشرة.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'local'
+                },
+                {
+                    title: 'ملف الخدمات والمؤسسات في مصر',
+                    summary: 'أبرز تحديثات الخدمات العامة والقرارات التنظيمية ذات التأثير على الجمهور.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'local'
+                },
+                {
+                    title: 'رصد يومي للتطورات المحلية',
+                    summary: 'موجز محلي سريع قابل للتحديث المستمر على مدار اليوم.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'local'
+                }
+            ],
+            war: [
+                {
+                    title: 'متابعة جيوسياسية عربية',
+                    summary: 'تغطية مختصرة لأهم التطورات الجيوسياسية المؤثرة على المنطقة العربية.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'war'
+                }
+            ],
+            economy: [
+                {
+                    title: 'متابعة الاقتصاد الكلي محليًا',
+                    summary: 'ملخص يومي للفائدة والتضخم وسوق الصرف والأخبار الاقتصادية المؤثرة.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'economy'
+                }
+            ]
         };
 
         function escapeHtml(value) {
@@ -105,7 +169,11 @@
             const host = window.location.hostname || '127.0.0.1';
             const activePort = String(window.location.port || '').trim();
             const ports = [...new Set([activePort, ...API_PORT_CANDIDATES].filter(Boolean))];
-            const hosts = [...new Set([host, '127.0.0.1', 'localhost'])];
+            const hosts = [...new Set(
+                ['127.0.0.1', 'localhost'].includes(host)
+                    ? [host, host === '127.0.0.1' ? 'localhost' : '127.0.0.1']
+                    : [host]
+            )];
 
             const out = [''];
             hosts.forEach((h) => {
@@ -116,6 +184,17 @@
             return [...new Set(out.map((base) => normalizeApiBase(base) || ''))];
         }
 
+        function cleanupBlockedApiBases() {
+            const blocked = APP_STATE.apiBlockedBases || {};
+            const now = Date.now();
+            Object.keys(blocked).forEach((base) => {
+                const ts = Number(blocked[base]) || 0;
+                if (!ts || (now - ts) > API_BLOCK_TTL_MS) {
+                    delete blocked[base];
+                }
+            });
+        }
+
         function buildApiUrl(path, base = '') {
             const safePath = String(path || '').startsWith('/') ? String(path || '') : `/${String(path || '')}`;
             if (!base) return safePath;
@@ -123,12 +202,28 @@
         }
 
         function getOrderedApiBases() {
+            cleanupBlockedApiBases();
             const known = buildAutoApiCandidates();
             if (APP_STATE.apiBase && !known.includes(APP_STATE.apiBase)) known.unshift(APP_STATE.apiBase);
-            if (APP_STATE.apiBase || APP_STATE.apiBase === '') {
-                return [APP_STATE.apiBase, ...known.filter((x) => x !== APP_STATE.apiBase)];
+            const blocked = APP_STATE.apiBlockedBases || {};
+            const filtered = known.filter((base) => !blocked[base]);
+            if (APP_STATE.apiBase && !blocked[APP_STATE.apiBase]) {
+                return [APP_STATE.apiBase, ...filtered.filter((x) => x !== APP_STATE.apiBase && !blocked[x])];
             }
-            return known;
+            if (APP_STATE.apiBase === '' && !blocked['']) {
+                return ['', ...filtered.filter((x) => x !== '' && !blocked[x])];
+            }
+            return filtered;
+        }
+
+        async function fetchWithTimeout(url, options = {}, timeoutMs = API_REQUEST_TIMEOUT_MS) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), Math.max(700, Number(timeoutMs) || API_REQUEST_TIMEOUT_MS));
+            try {
+                return await fetch(url, { ...options, signal: controller.signal });
+            } finally {
+                clearTimeout(timer);
+            }
         }
 
         async function discoverApiBase() {
@@ -139,10 +234,14 @@
                 for (const base of bases) {
                     const healthUrl = buildApiUrl('/api/health', base);
                     try {
-                        const response = await fetch(healthUrl, { method: 'GET', headers: { Accept: 'application/json' } });
-                        if (!response.ok) continue;
+                        const response = await fetchWithTimeout(healthUrl, { method: 'GET', headers: { Accept: 'application/json' } }, API_REQUEST_TIMEOUT_MS);
+                        if (!response.ok) {
+                            APP_STATE.apiBlockedBases[base] = Date.now();
+                            continue;
+                        }
                         const payload = await response.json().catch(() => null);
                         if (!payload || payload.ok !== true) continue;
+                        if (payload.api_signature !== REQUIRED_API_SIGNATURE) continue;
                         setApiBase(base, true);
                         APP_STATE.apiReady = true;
                         setApiStatus(`تم الاتصال بخادم الأخبار: ${base || 'نفس رابط الصفحة'}`, 'ok');
@@ -150,10 +249,11 @@
                         if (input) input.value = APP_STATE.apiBase || '';
                         return true;
                     } catch (_) {
-                        // Try next base
+                        APP_STATE.apiBlockedBases[base] = Date.now();
                     }
                 }
                 APP_STATE.apiReady = false;
+                APP_STATE.lastApiFailureAt = Date.now();
                 setApiStatus('تعذر اكتشاف خادم API. شغّل server.js ثم أدخل الرابط يدويًا.', 'error');
                 return false;
             } finally {
@@ -163,21 +263,34 @@
 
         async function fetchApi(path, options = {}) {
             if (!APP_STATE.apiReady) {
+                if (APP_STATE.lastApiFailureAt && (Date.now() - APP_STATE.lastApiFailureAt < API_RETRY_COOLDOWN_MS)) {
+                    throw new Error('API unavailable (cooldown)');
+                }
                 await discoverApiBase();
+                if (!APP_STATE.apiReady && APP_STATE.lastApiFailureAt && (Date.now() - APP_STATE.lastApiFailureAt < API_RETRY_COOLDOWN_MS)) {
+                    throw new Error('API unavailable (cooldown)');
+                }
             }
             const bases = getOrderedApiBases();
+            if (!bases.length) {
+                APP_STATE.apiReady = false;
+                APP_STATE.lastApiFailureAt = Date.now();
+                throw new Error('No API base candidates available');
+            }
             let lastError = null;
 
             for (const base of bases) {
                 const url = buildApiUrl(path, base);
                 try {
-                    const response = await fetch(url, options);
+                    const response = await fetchWithTimeout(url, options, API_REQUEST_TIMEOUT_MS);
                     if (response.ok || [400, 401, 403].includes(response.status)) {
                         setApiBase(base, true);
                         APP_STATE.apiReady = true;
+                        APP_STATE.lastApiFailureAt = 0;
                         return response;
                     }
                     if ([404, 405, 502, 503, 504].includes(response.status)) {
+                        APP_STATE.apiBlockedBases[base] = Date.now();
                         lastError = new Error(`HTTP ${response.status}`);
                         continue;
                     }
@@ -185,20 +298,159 @@
                     APP_STATE.apiReady = true;
                     return response;
                 } catch (error) {
+                    APP_STATE.apiBlockedBases[base] = Date.now();
                     lastError = error;
                 }
             }
             APP_STATE.apiReady = false;
+            APP_STATE.lastApiFailureAt = Date.now();
             setApiStatus('فشل الاتصال بـ API. تأكد أن server.js يعمل ثم أعد المحاولة.', 'error');
             throw (lastError || new Error('تعذر الوصول إلى واجهة الـ API'));
         }
 
+        function isStandaloneMode() {
+            const mq = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+            return Boolean(mq || window.navigator.standalone === true);
+        }
+
+        function isIOSDevice() {
+            const ua = String(window.navigator.userAgent || '').toLowerCase();
+            return /iphone|ipad|ipod/.test(ua);
+        }
+
+        function shouldShowInstallBanner() {
+            if (isStandaloneMode()) return false;
+            if (localStorage.getItem(INSTALL_BANNER_DISMISS_KEY) === '1') return false;
+            return true;
+        }
+
+        function showInstallBanner(mode = 'generic') {
+            if (!shouldShowInstallBanner()) return;
+            const banner = document.getElementById('install-banner');
+            const text = document.getElementById('install-banner-text');
+            const installBtn = document.getElementById('install-now-btn');
+            if (!banner || !text || !installBtn) return;
+
+            const mobile = window.matchMedia('(max-width: 767px)').matches;
+            banner.style.bottom = mobile ? '74px' : '12px';
+
+            if (mode === 'ios') {
+                text.textContent = 'على iPhone: اضغط زر المشاركة في Safari ثم اختر "Add to Home Screen".';
+                installBtn.textContent = 'فهمت الخطوات';
+            } else {
+                text.textContent = 'يمكن تثبيت التطبيق للوصول السريع مثل التطبيقات الأصلية.';
+                installBtn.textContent = 'تثبيت الآن';
+            }
+
+            banner.classList.remove('hidden');
+            APP_STATE.installBannerShown = true;
+        }
+
+        function hideInstallBanner() {
+            const banner = document.getElementById('install-banner');
+            if (banner) banner.classList.add('hidden');
+            APP_STATE.installBannerShown = false;
+        }
+
+        function initInstallExperience() {
+            const installBtn = document.getElementById('install-now-btn');
+            const laterBtn = document.getElementById('install-later-btn');
+            const neverBtn = document.getElementById('install-never-btn');
+            const closeBtn = document.getElementById('install-banner-close');
+
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (APP_STATE.deferredInstallPrompt) {
+                        APP_STATE.deferredInstallPrompt.prompt();
+                        try {
+                            await APP_STATE.deferredInstallPrompt.userChoice;
+                        } catch (_) {}
+                        APP_STATE.deferredInstallPrompt = null;
+                        hideInstallBanner();
+                        return;
+                    }
+                    hideInstallBanner();
+                });
+            }
+            if (laterBtn) laterBtn.addEventListener('click', hideInstallBanner);
+            if (closeBtn) closeBtn.addEventListener('click', hideInstallBanner);
+            if (neverBtn) {
+                neverBtn.addEventListener('click', () => {
+                    localStorage.setItem(INSTALL_BANNER_DISMISS_KEY, '1');
+                    hideInstallBanner();
+                });
+            }
+
+            window.addEventListener('beforeinstallprompt', (event) => {
+                event.preventDefault();
+                APP_STATE.deferredInstallPrompt = event;
+                showInstallBanner('android');
+            });
+
+            if (shouldShowInstallBanner()) {
+                if (isIOSDevice()) {
+                    setTimeout(() => showInstallBanner('ios'), 1400);
+                } else {
+                    setTimeout(() => showInstallBanner('generic'), 2000);
+                }
+            }
+        }
+
+        async function registerServiceWorker() {
+            const canRegister = 'serviceWorker' in navigator;
+            const secureContext = window.location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
+            if (!canRegister || !secureContext) return;
+            try {
+                await navigator.serviceWorker.register('./sw.js');
+            } catch (_) {
+                // Keep silent to avoid disturbing users.
+            }
+        }
+
+        function normalizeVideoUrl(url) {
+            const raw = String(url || '').trim();
+            if (!raw) return '';
+            try {
+                const parsed = new URL(raw, window.location.href);
+                if (!/^https?:$/i.test(parsed.protocol)) return '';
+                return parsed.toString();
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function youtubeEmbedUrl(url) {
+            const videoUrl = normalizeVideoUrl(url);
+            if (!videoUrl) return '';
+            try {
+                const u = new URL(videoUrl);
+                const host = u.hostname.toLowerCase();
+                if (host === 'youtu.be') {
+                    const id = u.pathname.replace(/\//g, '').trim();
+                    return id ? `https://www.youtube.com/embed/${encodeURIComponent(id)}` : '';
+                }
+                if (host.includes('youtube.com')) {
+                    const id = u.searchParams.get('v');
+                    if (id) return `https://www.youtube.com/embed/${encodeURIComponent(id)}`;
+                    const parts = u.pathname.split('/').filter(Boolean);
+                    if (parts[0] === 'shorts' && parts[1]) {
+                        return `https://www.youtube.com/embed/${encodeURIComponent(parts[1])}`;
+                    }
+                }
+            } catch (_) {
+                return '';
+            }
+            return '';
+        }
+
         function updateClock() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const dateString = now.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+            const timeString = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            const dateString = now.toLocaleDateString('ar-EG', { year: '2-digit', month: '2-digit', day: '2-digit' });
             const clock = document.getElementById('real-time-clock');
-            if (clock) clock.innerHTML = `${dateString} - ${timeString}`;
+            if (clock) {
+                clock.textContent = `${dateString} • ${timeString}`;
+            }
         }
 
         function switchMainTab(tabName) {
@@ -220,9 +472,15 @@
             selectedSection.classList.add('block');
 
             const activeBtn = document.getElementById(`main-btn-${tabName}`);
-            if (!activeBtn) return;
-            activeBtn.classList.add('active');
-            activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+
+            const mobileButtons = document.querySelectorAll('.mobile-main-tab');
+            mobileButtons.forEach((button) => button.classList.remove('active'));
+            const mobileActive = document.getElementById(`m-main-btn-${tabName}`);
+            if (mobileActive) mobileActive.classList.add('active');
         }
 
         function switchSubTab(subTabId) {
@@ -366,6 +624,25 @@
             return `<a href="${escapeAttr(item.source_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-amber-600 hover:bg-amber-500 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-link"></i> مصدر الخبر</a>`;
         }
 
+        function videoButton(item) {
+            const videoUrl = normalizeVideoUrl(item?.video_url || '');
+            if (!videoUrl) return '';
+            return `<a href="${escapeAttr(videoUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-play"></i> مشاهدة الفيديو</a>`;
+        }
+
+        function pdfButton(item) {
+            const pdfUrl = normalizeVideoUrl(item?.pdf_url || '');
+            if (!pdfUrl) return '';
+            return `<a href="${escapeAttr(pdfUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-file-pdf"></i> ملف PDF</a>`;
+        }
+
+        function actionButton(item) {
+            const ctaUrl = normalizeVideoUrl(item?.cta_url || '');
+            if (!ctaUrl) return '';
+            const label = String(item?.cta_label || '').trim() || 'فتح الرابط';
+            return `<a href="${escapeAttr(ctaUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-arrow-up-right-from-square"></i> ${escapeHtml(label)}</a>`;
+        }
+
         function applyViewModeButtons() {
             const cardsBtn = document.getElementById('view-cards-btn');
             const timelineBtn = document.getElementById('view-timeline-btn');
@@ -402,18 +679,39 @@
             const image = item?.image_url
                 ? `<div class="h-32 w-full overflow-hidden rounded-lg mb-3 bg-slate-900"><img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.title || 'news')}" class="w-full h-full object-cover" onerror="this.style.display='none';"></div>`
                 : '';
+            const youtubeEmbed = youtubeEmbedUrl(item?.video_url || '');
+            const videoEmbed = youtubeEmbed
+                ? `<div class="mb-3 overflow-hidden rounded-lg border border-slate-700 bg-black">
+                        <iframe src="${escapeAttr(youtubeEmbed)}" title="youtube video" class="w-full aspect-video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                   </div>`
+                : '';
+
+            const isAihub = String(item?.category || '').toLowerCase() === 'aihub';
+            const aihubClass = isAihub ? 'bg-gradient-to-br from-slate-800/95 to-slate-900/95 border-amber-500/50 ring-1 ring-amber-300/20' : 'bg-slate-800/95';
+            const featuredChip = item?.is_featured
+                ? '<span class="text-[10px] bg-amber-600 text-white px-2 py-1 rounded">مميز</span>'
+                : '';
 
             return `
-                <article class="bg-slate-800/95 rounded-xl border ${borderTone} p-4 shadow">
+                <article class="${aihubClass} rounded-xl border ${borderTone} p-4 shadow">
+                    ${videoEmbed}
                     ${image}
                     <div class="flex items-start justify-between gap-2 mb-2">
                         <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300">${escapeHtml(item.source || 'مصدر غير متاح')}</span>
-                        <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                        <div class="flex items-center gap-2">
+                            ${featuredChip}
+                            <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                        </div>
                     </div>
                     <h4 class="text-sm font-bold text-slate-100 mb-2">${escapeHtml(item.title || 'بدون عنوان')}</h4>
                     <p class="text-xs text-slate-300 leading-relaxed mb-3">${escapeHtml(item.summary || '')}</p>
-                    <div class="flex items-center justify-between gap-2">
-                        ${sourceButton(item)}
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            ${sourceButton(item)}
+                            ${videoButton(item)}
+                            ${pdfButton(item)}
+                            ${actionButton(item)}
+                        </div>
                         ${item.origin === 'manual' ? '<span class="text-[10px] text-cyan-300 border border-cyan-700/60 px-2 py-1 rounded">مضاف يدويًا</span>' : ''}
                     </div>
                 </article>
@@ -433,20 +731,40 @@
             const image = item?.image_url
                 ? `<div class="h-28 md:h-32 w-full overflow-hidden rounded-lg mb-3 bg-slate-900"><img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.title || 'news')}" class="w-full h-full object-cover" onerror="this.style.display='none';"></div>`
                 : '';
+            const youtubeEmbed = youtubeEmbedUrl(item?.video_url || '');
+            const videoEmbed = youtubeEmbed
+                ? `<div class="mb-3 overflow-hidden rounded-lg border border-slate-700 bg-black">
+                        <iframe src="${escapeAttr(youtubeEmbed)}" title="youtube video" class="w-full aspect-video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                   </div>`
+                : '';
+
+            const isAihub = String(item?.category || '').toLowerCase() === 'aihub';
+            const featuredChip = item?.is_featured
+                ? '<span class="text-[10px] bg-amber-600 text-white px-2 py-1 rounded">مميز</span>'
+                : '';
 
             return `
                 <article class="relative pr-5 border-r-2 ${toneClass}">
                     <div class="absolute -right-[7px] top-3 w-3 h-3 rounded-full bg-current"></div>
-                    <div class="bg-slate-800/95 rounded-xl border border-slate-700 p-4 shadow mb-3">
+                    <div class="${isAihub ? 'bg-gradient-to-br from-slate-800/95 to-slate-900/95 border-amber-500/50 ring-1 ring-amber-300/20' : 'bg-slate-800/95'} rounded-xl border border-slate-700 p-4 shadow mb-3">
+                        ${videoEmbed}
                         ${image}
                         <div class="flex items-center justify-between gap-2 mb-2">
                             <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300">${escapeHtml(item.source || 'مصدر غير متاح')}</span>
-                            <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                            <div class="flex items-center gap-2">
+                                ${featuredChip}
+                                <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                            </div>
                         </div>
                         <h4 class="text-sm font-bold text-slate-100 mb-2">${escapeHtml(item.title || 'بدون عنوان')}</h4>
                         <p class="text-xs text-slate-300 leading-relaxed mb-3">${escapeHtml(item.summary || '')}</p>
-                        <div class="flex items-center justify-between gap-2">
-                            ${sourceButton(item)}
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                ${sourceButton(item)}
+                                ${videoButton(item)}
+                                ${pdfButton(item)}
+                                ${actionButton(item)}
+                            </div>
                             ${item.origin === 'manual' ? '<span class="text-[10px] text-cyan-300 border border-cyan-700/60 px-2 py-1 rounded">مضاف يدويًا</span>' : ''}
                         </div>
                     </div>
@@ -579,6 +897,253 @@
             track.style.animationDuration = `${durationSec}s`;
         }
 
+        function stripHtmlLite(value) {
+            return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        function excerptLite(value, maxLen = 220) {
+            const clean = stripHtmlLite(value);
+            if (clean.length <= maxLen) return clean;
+            return `${clean.slice(0, maxLen - 1).trim()}…`;
+        }
+
+        function looksArabic(value) {
+            return /[\u0600-\u06FF]/.test(String(value || ''));
+        }
+
+        function sourceDomainLite(urlValue) {
+            try {
+                return new URL(urlValue).hostname.replace(/^www\./, '');
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function parseRssItemsLite(xmlText) {
+            const xml = String(xmlText || '');
+            const blocks = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)].map((m) => m[0]);
+            const extract = (block, tag) => {
+                const match = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+                return match ? match[1] : '';
+            };
+            const extractLink = (block) => {
+                const hrefMatch = block.match(/<link[^>]*href=["']([^"']+)["'][^>]*>/i);
+                if (hrefMatch) return hrefMatch[1];
+                const textMatch = block.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+                return textMatch ? textMatch[1] : '';
+            };
+            return blocks.map((block) => ({
+                title: stripHtmlLite(extract(block, 'title')),
+                description: stripHtmlLite(extract(block, 'description') || extract(block, 'summary')),
+                link: stripHtmlLite(extractLink(block)),
+                pubDate: stripHtmlLite(extract(block, 'pubDate') || extract(block, 'updated') || extract(block, 'published'))
+            }));
+        }
+
+        async function fetchRssWithCorsFallback(feedUrl) {
+            const urls = [feedUrl, `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`];
+            for (const candidate of urls) {
+                try {
+                    const response = await fetchWithTimeout(candidate, { method: 'GET' }, 4500);
+                    if (!response.ok) continue;
+                    const text = await response.text();
+                    if (/<item\b|<entry\b/i.test(text)) return text;
+                } catch (_) {}
+            }
+            return '';
+        }
+
+        async function fetchRssViaJson(feedUrl) {
+            const endpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`;
+            try {
+                const response = await fetchWithTimeout(endpoint, { method: 'GET' }, 4500);
+                if (!response.ok) return [];
+                const payload = await response.json();
+                if (payload?.status !== 'ok' || !Array.isArray(payload?.items)) return [];
+                return payload.items.map((item) => ({
+                    title: String(item?.title || '').trim(),
+                    description: stripHtmlLite(item?.description || item?.content || item?.title || ''),
+                    link: String(item?.link || item?.guid || '').trim(),
+                    pubDate: String(item?.pubDate || item?.published || '').trim()
+                }));
+            } catch (_) {
+                return [];
+            }
+        }
+
+        async function fetchEmergencyFeedItems(feedUrl) {
+            const jsonItems = await fetchRssViaJson(feedUrl);
+            if (jsonItems.length) return jsonItems;
+            const xml = await fetchRssWithCorsFallback(feedUrl);
+            return parseRssItemsLite(xml);
+        }
+
+        function mapEmergencyItems(items, category, scope) {
+            return (Array.isArray(items) ? items : [])
+                .map((row, idx) => {
+                    const sourceUrl = String(row.link || row.source_url || 'https://news.google.com/').trim();
+                    const title = String(row.title || '').trim();
+                    const summary = excerptLite(row.description || row.summary || row.title || '', 240);
+                    if (!title || !sourceUrl || summary.length < 20) return null;
+                    return {
+                        id: `em_${category}_${scope}_${Date.now()}_${idx}`,
+                        category,
+                        scope,
+                        title,
+                        summary,
+                        source: String(row.source || sourceDomainLite(sourceUrl) || 'news'),
+                        source_url: sourceUrl,
+                        image_url: '',
+                        published_at: row.pubDate || '',
+                        origin: 'rss',
+                        verified: true
+                    };
+                })
+                .filter(Boolean);
+        }
+
+        async function buildEmergencyFallbackPayload() {
+            const feeds = {
+                ar_local: 'https://news.google.com/rss/search?q=أخبار مصر&hl=ar&gl=EG&ceid=EG:ar',
+                ar_war: 'https://news.google.com/rss/search?q=الأخبار الجيوسياسية&hl=ar&gl=EG&ceid=EG:ar',
+                ar_economy: 'https://news.google.com/rss/search?q=اقتصاد مصر أسعار الفائدة&hl=ar&gl=EG&ceid=EG:ar',
+                en_local: 'https://news.google.com/rss/search?q=middle east regional news&hl=en&gl=US&ceid=US:en'
+            };
+
+            const [arLocalRaw, arWarRaw, arEconomyRaw, enLocalRaw] = await Promise.all([
+                fetchEmergencyFeedItems(feeds.ar_local),
+                fetchEmergencyFeedItems(feeds.ar_war),
+                fetchEmergencyFeedItems(feeds.ar_economy),
+                fetchEmergencyFeedItems(feeds.en_local)
+            ]);
+
+            const arLocalItems = mapEmergencyItems((Array.isArray(arLocalRaw) ? arLocalRaw : []).filter((x) => looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'local', 'local');
+            const arWarItems = mapEmergencyItems((Array.isArray(arWarRaw) ? arWarRaw : []).filter((x) => looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'war', 'local');
+            const arEconomyItems = mapEmergencyItems((Array.isArray(arEconomyRaw) ? arEconomyRaw : []).filter((x) => looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'economy', 'local');
+            const enLocalItems = mapEmergencyItems((Array.isArray(enLocalRaw) ? enLocalRaw : []).filter((x) => !looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'local', 'global');
+
+            if (!arLocalItems.length && !arWarItems.length && !arEconomyItems.length && !enLocalItems.length) {
+                const staticLocal = mapEmergencyItems(STATIC_LOCAL_FALLBACK.local, 'local', 'local');
+                const staticWar = mapEmergencyItems(STATIC_LOCAL_FALLBACK.war, 'war', 'local');
+                const staticEconomy = mapEmergencyItems(STATIC_LOCAL_FALLBACK.economy, 'economy', 'local');
+                if (!staticLocal.length && !staticWar.length && !staticEconomy.length) return null;
+                return {
+                    news: APP_STATE.latestPayload?.news || { war: [], local: [], economy: [], legal: [], ai: [], tech: [], aihub: [] },
+                    news_scopes: {
+                        war: { global: [], local: staticWar },
+                        local: { global: [], local: staticLocal },
+                        economy: { global: [], local: staticEconomy },
+                        ai: { global: [], local: [] },
+                        tech: { global: [], local: [] }
+                    },
+                    aihub_sections: APP_STATE.latestPayload?.aihub_sections || { announcements: [], tools: [], community: [], tutorials: [] },
+                    source: 'client-static-local-fallback'
+                };
+            }
+
+            const fallbackNews = APP_STATE.latestPayload?.news || { war: [], local: [], economy: [], legal: [], ai: [], tech: [], aihub: [] };
+            const fallbackScopes = APP_STATE.latestPayload?.news_scopes || {};
+
+            return {
+                news: fallbackNews,
+                news_scopes: {
+                    war: {
+                        global: Array.isArray(fallbackScopes?.war?.global) ? fallbackScopes.war.global : [],
+                        local: arWarItems.length ? arWarItems : (Array.isArray(fallbackScopes?.war?.local) ? fallbackScopes.war.local : [])
+                    },
+                    local: {
+                        global: enLocalItems.length ? enLocalItems : (Array.isArray(fallbackScopes?.local?.global) ? fallbackScopes.local.global : []),
+                        local: arLocalItems.length ? arLocalItems : (Array.isArray(fallbackScopes?.local?.local) ? fallbackScopes.local.local : [])
+                    },
+                    economy: {
+                        global: Array.isArray(fallbackScopes?.economy?.global) ? fallbackScopes.economy.global : [],
+                        local: arEconomyItems.length ? arEconomyItems : (Array.isArray(fallbackScopes?.economy?.local) ? fallbackScopes.economy.local : [])
+                    },
+                    ai: fallbackScopes?.ai || { global: [], local: [] },
+                    tech: fallbackScopes?.tech || { global: [], local: [] }
+                },
+                aihub_sections: APP_STATE.latestPayload?.aihub_sections || { announcements: [], tools: [], community: [], tutorials: [] },
+                source: 'client-emergency-rss'
+            };
+        }
+
+        function mergeScopedItems(primaryItems, fallbackItems, minCount = 3) {
+            const out = [];
+            const seen = new Set();
+            const pushItem = (item) => {
+                if (!item) return;
+                const key = `${String(item.source_url || '').trim()}|${String(item.title || '').trim()}`.toLowerCase();
+                if (!key || seen.has(key)) return;
+                seen.add(key);
+                out.push(item);
+            };
+            (Array.isArray(primaryItems) ? primaryItems : []).forEach(pushItem);
+            if (out.length < minCount) {
+                (Array.isArray(fallbackItems) ? fallbackItems : []).forEach(pushItem);
+            }
+            return out;
+        }
+
+        function ensureArabicScopeCoverage(payload, emergencyPayload) {
+            if (!payload || !emergencyPayload) return payload;
+            const p = payload.news_scopes || {};
+            const e = emergencyPayload.news_scopes || {};
+            const merged = {
+                ...payload,
+                news_scopes: {
+                    ...p,
+                    war: {
+                        global: Array.isArray(p?.war?.global) ? p.war.global : [],
+                        local: mergeScopedItems(p?.war?.local, e?.war?.local, 3)
+                    },
+                    local: {
+                        global: mergeScopedItems(p?.local?.global, e?.local?.global, 3),
+                        local: mergeScopedItems(p?.local?.local, e?.local?.local, 3)
+                    },
+                    economy: {
+                        global: Array.isArray(p?.economy?.global) ? p.economy.global : [],
+                        local: mergeScopedItems(p?.economy?.local, e?.economy?.local, 3)
+                    },
+                    ai: p?.ai || { global: [], local: [] },
+                    tech: p?.tech || { global: [], local: [] }
+                }
+            };
+            return merged;
+        }
+
+        function getStaticArabicFallback(category) {
+            const rows = STATIC_LOCAL_FALLBACK[category] || [];
+            const mapped = mapEmergencyItems(rows, category, 'local');
+            return mapped.slice(0, 6);
+        }
+
+        function buildImmediateFallbackPayload() {
+            const baseNews = APP_STATE.latestPayload?.news || { war: [], local: [], economy: [], legal: [], ai: [], tech: [], aihub: [] };
+            const baseScopes = APP_STATE.latestPayload?.news_scopes || {};
+            return {
+                ok: true,
+                news: baseNews,
+                news_scopes: {
+                    war: {
+                        global: Array.isArray(baseScopes?.war?.global) ? baseScopes.war.global : [],
+                        local: getStaticArabicFallback('war')
+                    },
+                    local: {
+                        global: Array.isArray(baseScopes?.local?.global) ? baseScopes.local.global : [],
+                        local: getStaticArabicFallback('local')
+                    },
+                    economy: {
+                        global: Array.isArray(baseScopes?.economy?.global) ? baseScopes.economy.global : [],
+                        local: getStaticArabicFallback('economy')
+                    },
+                    ai: baseScopes?.ai || { global: [], local: [] },
+                    tech: baseScopes?.tech || { global: [], local: [] }
+                },
+                aihub_sections: APP_STATE.latestPayload?.aihub_sections || { announcements: [], tools: [], community: [], tutorials: [] },
+                source: 'client-static-local-fallback'
+            };
+        }
+
         function renderMergedTabs(news, payload) {
             const scoped = payload?.news_scopes || {};
             const warScoped = ensureScopedPair(scoped, 'war', news?.war || []);
@@ -587,9 +1152,19 @@
             const aiScoped = ensureScopedPair(scoped, 'ai', news?.ai || []);
             const techScoped = ensureScopedPair(scoped, 'tech', news?.tech || []);
 
-            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_local, localScoped.local, 'sky', 'لا توجد أخبار عربية محلية حالياً.');
-            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_war, warScoped.local, 'sky', 'لا توجد أخبار جيوسياسية عربية حالياً.');
-            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_economy, economyScoped.local, 'sky', 'لا توجد أخبار اقتصادية عربية حالياً.');
+            const arabicLocalSafe = Array.isArray(localScoped.local) && localScoped.local.length
+                ? localScoped.local
+                : getStaticArabicFallback('local');
+            const arabicWarSafe = Array.isArray(warScoped.local) && warScoped.local.length
+                ? warScoped.local
+                : getStaticArabicFallback('war');
+            const arabicEconomySafe = Array.isArray(economyScoped.local) && economyScoped.local.length
+                ? economyScoped.local
+                : getStaticArabicFallback('economy');
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_local, arabicLocalSafe, 'sky', 'لا توجد أخبار عربية محلية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_war, arabicWarSafe, 'sky', 'لا توجد أخبار جيوسياسية عربية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_economy, arabicEconomySafe, 'sky', 'لا توجد أخبار اقتصادية عربية حالياً.');
 
             renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_war, warScoped.global, 'red', 'لا توجد أخبار جيوسياسية عالمية حالياً.');
             renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_economy, economyScoped.global, 'emerald', 'لا توجد أخبار اقتصادية عالمية حالياً.');
@@ -647,13 +1222,42 @@
 
         async function loadNews(force = false) {
             try {
+                if (!APP_STATE.latestPayload) {
+                    const firstFallback = buildImmediateFallbackPayload();
+                    APP_STATE.latestPayload = firstFallback;
+                    renderMergedTabs(firstFallback.news, firstFallback);
+                    renderTicker(firstFallback.news);
+                }
+
+                if (!APP_STATE.apiReady && APP_STATE.lastApiFailureAt && (Date.now() - APP_STATE.lastApiFailureAt < API_RETRY_COOLDOWN_MS)) {
+                    const quickFallback = buildImmediateFallbackPayload();
+                    APP_STATE.latestPayload = quickFallback;
+                    renderMergedTabs(quickFallback.news, quickFallback);
+                    renderTicker(quickFallback.news);
+                    if (!force) return;
+                }
+
                 const response = await fetchApi(`/api/news${force ? '?force=1' : ''}`, {
                     method: 'GET',
                     headers: { 'Accept': 'application/json' }
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const payload = await response.json();
+                let payload = await response.json();
                 if (!payload?.ok) throw new Error(payload?.error || 'تعذر جلب الأخبار');
+
+                const hasArabicLocal =
+                    Array.isArray(payload?.news_scopes?.local?.local) && payload.news_scopes.local.local.length > 0;
+                const hasArabicWar =
+                    Array.isArray(payload?.news_scopes?.war?.local) && payload.news_scopes.war.local.length > 0;
+                const hasArabicEconomy =
+                    Array.isArray(payload?.news_scopes?.economy?.local) && payload.news_scopes.economy.local.length > 0;
+
+                if (!hasArabicLocal || !hasArabicWar || !hasArabicEconomy) {
+                    const emergencyPayload = await buildEmergencyFallbackPayload().catch(() => null);
+                    if (emergencyPayload) {
+                        payload = ensureArabicScopeCoverage(payload, emergencyPayload);
+                    }
+                }
 
                 APP_STATE.latestPayload = payload;
                 renderMergedTabs(payload.news, payload);
@@ -661,8 +1265,40 @@
                 loadMarketSnapshot();
             } catch (error) {
                 const track = document.getElementById('news-ticker-track');
+                const emergencyPayload = await buildEmergencyFallbackPayload().catch(() => null);
+                if (emergencyPayload) {
+                    APP_STATE.latestPayload = emergencyPayload;
+                    renderMergedTabs(emergencyPayload.news, emergencyPayload);
+                    renderTicker(emergencyPayload.news);
+                    if (track) {
+                        track.innerHTML = `<span class="ticker-chip"><i class="fas fa-triangle-exclamation text-amber-400"></i> وضع طوارئ: عرض RSS مباشر من المتصفح بسبب تعذر الاتصال بالخادم.</span>`;
+                    }
+                    return;
+                }
                 if (track) {
                     track.innerHTML = `<span class="ticker-chip"><i class="fas fa-triangle-exclamation text-red-400"></i> تعذر جلب الأخبار: ${escapeHtml(error.message)} | تحقق من تشغيل server.js</span>`;
+                }
+            }
+        }
+
+        async function manualRefreshNews() {
+            const btn = document.getElementById('refresh-news-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-60', 'cursor-not-allowed');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
+            }
+            try {
+                const optimistic = buildImmediateFallbackPayload();
+                APP_STATE.latestPayload = optimistic;
+                renderMergedTabs(optimistic.news, optimistic);
+                renderTicker(optimistic.news);
+                await loadNews(true);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-60', 'cursor-not-allowed');
+                    btn.innerHTML = '<i class="fas fa-rotate"></i> تحديث الأخبار';
                 }
             }
         }
@@ -727,6 +1363,25 @@
             }
         }
 
+        function switchAdminEditorTab(tabName) {
+            const newsEditor = document.getElementById('admin-news-editor');
+            const homeEditor = document.getElementById('admin-home-editor');
+            const newsBtn = document.getElementById('admin-tab-news-btn');
+            const homeBtn = document.getElementById('admin-tab-home-btn');
+            if (!newsEditor || !homeEditor || !newsBtn || !homeBtn) return;
+
+            const activeNews = tabName !== 'home';
+            newsEditor.classList.toggle('hidden', !activeNews);
+            homeEditor.classList.toggle('hidden', activeNews);
+
+            newsBtn.className = activeNews
+                ? 'text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold px-3 py-2 rounded-md'
+                : 'text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold px-3 py-2 rounded-md';
+            homeBtn.className = !activeNews
+                ? 'text-xs bg-amber-700 hover:bg-amber-600 text-white font-bold px-3 py-2 rounded-md'
+                : 'text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold px-3 py-2 rounded-md';
+        }
+
         function fileToDataUrl(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -746,11 +1401,12 @@
         function renderAdminManualList(items) {
             const target = document.getElementById('admin-manual-news-list');
             if (!target) return;
-            if (!Array.isArray(items) || !items.length) {
+            const filtered = (Array.isArray(items) ? items : []).filter((item) => item?.category !== 'aihub');
+            if (!filtered.length) {
                 target.innerHTML = '<p class="text-xs text-slate-400">لا توجد أخبار مضافة يدويًا بعد.</p>';
                 return;
             }
-            target.innerHTML = items.slice(0, 10).map((item) => `
+            target.innerHTML = filtered.slice(0, 10).map((item) => `
                 <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
                     <div class="flex items-start justify-between gap-2 mb-1">
                         <h5 class="text-xs font-bold text-slate-100">${escapeHtml(item.title || '')}</h5>
@@ -760,8 +1416,37 @@
                         <span class="text-[10px] text-slate-400">${escapeHtml(item.source || '')}</span>
                         <div class="flex items-center gap-2">
                             ${sourceButton(item)}
+                            ${videoButton(item)}
                             <button class="admin-delete-news-btn text-[10px] bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded" data-news-id="${escapeAttr(item.id || '')}">حذف</button>
                         </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAdminAiHubList(items) {
+            const target = document.getElementById('admin-home-list');
+            if (!target) return;
+            const filtered = (Array.isArray(items) ? items : []).filter((item) => item?.category === 'aihub');
+            if (!filtered.length) {
+                target.innerHTML = '<p class="text-xs text-slate-400">لا توجد عناصر في الرئيسية حتى الآن.</p>';
+                return;
+            }
+            target.innerHTML = filtered.slice(0, 20).map((item) => `
+                <div class="bg-slate-800 border border-amber-700/40 rounded-lg p-3">
+                    <div class="flex items-start justify-between gap-2 mb-1">
+                        <h5 class="text-xs font-bold text-slate-100">${escapeHtml(item.title || '')}</h5>
+                        <span class="text-[10px] text-amber-300">${escapeHtml(item.aihub_section || 'announcements')}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300 mb-2">${escapeHtml(item.summary || '')}</p>
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            ${sourceButton(item)}
+                            ${videoButton(item)}
+                            ${pdfButton(item)}
+                            ${actionButton(item)}
+                        </div>
+                        <button class="admin-delete-news-btn text-[10px] bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded" data-news-id="${escapeAttr(item.id || '')}">حذف</button>
                     </div>
                 </div>
             `).join('');
@@ -770,15 +1455,18 @@
         async function deleteManualNews(id) {
             if (!id) return;
             setText('admin-add-status', 'جارٍ حذف الخبر...', 'text-xs text-slate-300 mt-3');
+            setText('admin-home-status', 'جارٍ حذف العنصر...', 'text-xs text-slate-300 mt-3');
             try {
                 await apiJson('/api/admin/news/delete', {
                     method: 'POST',
                     body: JSON.stringify({ id })
                 }, true);
                 setText('admin-add-status', 'تم حذف الخبر.', 'text-xs text-emerald-300 mt-3');
+                setText('admin-home-status', 'تم حذف العنصر.', 'text-xs text-emerald-300 mt-3');
                 await Promise.all([refreshAdminManualList(), loadNews(false)]);
             } catch (error) {
                 setText('admin-add-status', `تعذر حذف الخبر: ${error.message}`, 'text-xs text-red-300 mt-3');
+                setText('admin-home-status', `تعذر حذف العنصر: ${error.message}`, 'text-xs text-red-300 mt-3');
             }
         }
 
@@ -786,9 +1474,82 @@
             try {
                 const payload = await apiJson('/api/admin/news', { method: 'GET' }, true);
                 renderAdminManualList(payload.items || []);
+                renderAdminAiHubList(payload.items || []);
             } catch (error) {
                 renderAdminManualList([]);
+                renderAdminAiHubList([]);
                 setText('admin-add-status', `تعذر تحميل قائمة الأخبار اليدوية: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function refreshAdminAiHubList() {
+            try {
+                const payload = await apiJson('/api/admin/news', { method: 'GET' }, true);
+                renderAdminAiHubList(payload.items || []);
+            } catch (error) {
+                renderAdminAiHubList([]);
+                setText('admin-home-status', `تعذر تحميل عناصر الرئيسية: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function addAiHubHomeItem() {
+            const section = document.getElementById('admin-home-section')?.value || 'announcements';
+            const title = String(document.getElementById('admin-home-title')?.value || '').trim();
+            const summary = String(document.getElementById('admin-home-summary')?.value || '').trim();
+            const source = String(document.getElementById('admin-home-source')?.value || '').trim() || 'AI HUB';
+            let sourceUrl = String(document.getElementById('admin-home-source-url')?.value || '').trim();
+            let imageUrl = String(document.getElementById('admin-home-image-url')?.value || '').trim();
+            const videoUrl = String(document.getElementById('admin-home-video-url')?.value || '').trim();
+            const pdfUrl = String(document.getElementById('admin-home-pdf-url')?.value || '').trim();
+            const ctaUrl = String(document.getElementById('admin-home-cta-url')?.value || '').trim();
+            const ctaLabel = String(document.getElementById('admin-home-cta-label')?.value || '').trim();
+            const isFeatured = Boolean(document.getElementById('admin-home-featured')?.checked);
+            const imageFile = document.getElementById('admin-home-image-file')?.files?.[0];
+
+            if (!sourceUrl) {
+                sourceUrl = ctaUrl || videoUrl || pdfUrl;
+            }
+
+            if (!imageUrl && imageFile) {
+                imageUrl = await fileToDataUrl(imageFile);
+            }
+
+            setText('admin-home-status', 'جارٍ إضافة عنصر الرئيسية...', 'text-xs text-slate-300 mt-3');
+            try {
+                await apiJson('/api/admin/news', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        category: 'aihub',
+                        scope: 'local',
+                        aihub_section: section,
+                        title,
+                        summary,
+                        source,
+                        source_url: sourceUrl,
+                        image_url: imageUrl,
+                        video_url: videoUrl,
+                        pdf_url: pdfUrl,
+                        cta_url: ctaUrl,
+                        cta_label: ctaLabel,
+                        is_featured: isFeatured,
+                        published_at: new Date().toISOString(),
+                        auto_extract: (!title || !summary || !source)
+                    })
+                }, true);
+
+                ['admin-home-title', 'admin-home-summary', 'admin-home-source', 'admin-home-source-url', 'admin-home-image-url', 'admin-home-video-url', 'admin-home-pdf-url', 'admin-home-cta-url', 'admin-home-cta-label'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                const homeFile = document.getElementById('admin-home-image-file');
+                if (homeFile) homeFile.value = '';
+                const homeFeatured = document.getElementById('admin-home-featured');
+                if (homeFeatured) homeFeatured.checked = false;
+
+                setText('admin-home-status', 'تمت إضافة العنصر بنجاح في الرئيسية.', 'text-xs text-emerald-300 mt-3');
+                await Promise.all([loadNews(false), refreshAdminAiHubList()]);
+            } catch (error) {
+                setText('admin-home-status', `فشل إضافة عنصر الرئيسية: ${error.message}`, 'text-xs text-red-300 mt-3');
             }
         }
 
@@ -846,10 +1607,10 @@
                     body: JSON.stringify({ password })
                 });
                 APP_STATE.adminToken = payload.token;
-                localStorage.setItem('aihub_admin_token', payload.token);
                 setAdminAuthState(true);
                 setText('admin-add-status', 'يمكنك الآن إضافة الأخبار.', 'text-xs text-emerald-300 mt-3');
                 await refreshAdminManualList();
+                await refreshAdminAiHubList();
                 await refreshAdminAIStatus();
             } catch (error) {
                 const apiHint = APP_STATE.apiBase ? ` | API: ${APP_STATE.apiBase}` : '';
@@ -862,7 +1623,6 @@
                 await apiJson('/api/admin/logout', { method: 'POST' }, true);
             } catch (_) {}
             APP_STATE.adminToken = '';
-            localStorage.removeItem('aihub_admin_token');
             setAdminAuthState(false);
             setText('admin-login-status', 'تم تسجيل الخروج.', 'text-xs text-slate-300 mt-3');
         }
@@ -904,6 +1664,7 @@
             const source = String(document.getElementById('admin-source')?.value || '').trim();
             const sourceUrl = String(document.getElementById('admin-source-url')?.value || '').trim();
             let imageUrl = String(document.getElementById('admin-image-url')?.value || '').trim();
+            const videoUrl = String(document.getElementById('admin-video-url')?.value || '').trim();
             const imageFile = document.getElementById('admin-image-file')?.files?.[0];
 
             if (!imageUrl && imageFile) {
@@ -924,11 +1685,12 @@
                         source,
                         source_url: sourceUrl,
                         image_url: imageUrl,
+                        video_url: videoUrl,
                         published_at: new Date().toISOString()
                     })
                 }, true);
 
-                ['admin-title', 'admin-summary', 'admin-source', 'admin-source-url', 'admin-image-url'].forEach((id) => {
+                ['admin-title', 'admin-summary', 'admin-source', 'admin-source-url', 'admin-image-url', 'admin-video-url'].forEach((id) => {
                     const el = document.getElementById(id);
                     if (el) el.value = '';
                 });
@@ -956,19 +1718,27 @@
             const statusAIBtn = document.getElementById('admin-ai-status-btn');
             const refreshSourcesBtn = document.getElementById('admin-refresh-sources-btn');
             const manualList = document.getElementById('admin-manual-news-list');
+            const homeList = document.getElementById('admin-home-list');
             const apiBaseInput = document.getElementById('api-base-input');
             const apiBaseSaveBtn = document.getElementById('api-base-save-btn');
             const viewCardsBtn = document.getElementById('view-cards-btn');
             const viewTimelineBtn = document.getElementById('view-timeline-btn');
+            const refreshNewsBtn = document.getElementById('refresh-news-btn');
+            const adminTabNewsBtn = document.getElementById('admin-tab-news-btn');
+            const adminTabHomeBtn = document.getElementById('admin-tab-home-btn');
+            const adminHomeAddBtn = document.getElementById('admin-home-add-btn');
+            const adminHomeRefreshBtn = document.getElementById('admin-home-refresh-btn');
 
             if (openBtn) {
                 openBtn.addEventListener('click', async () => {
                     openAdminModal();
                     setAdminAuthState(Boolean(APP_STATE.adminToken));
+                    switchAdminEditorTab('news');
                     toggleAIHubSectionInput();
                     if (apiBaseInput) apiBaseInput.value = APP_STATE.apiBase || '';
                     if (APP_STATE.adminToken) {
                         await refreshAdminManualList();
+                        await refreshAdminAiHubList();
                         await refreshAdminAIStatus();
                     }
                 });
@@ -1000,9 +1770,22 @@
             }
             if (viewCardsBtn) viewCardsBtn.addEventListener('click', () => setViewMode('cards'));
             if (viewTimelineBtn) viewTimelineBtn.addEventListener('click', () => setViewMode('timeline'));
+            if (refreshNewsBtn) refreshNewsBtn.addEventListener('click', manualRefreshNews);
+            if (adminTabNewsBtn) adminTabNewsBtn.addEventListener('click', () => switchAdminEditorTab('news'));
+            if (adminTabHomeBtn) adminTabHomeBtn.addEventListener('click', () => switchAdminEditorTab('home'));
+            if (adminHomeAddBtn) adminHomeAddBtn.addEventListener('click', addAiHubHomeItem);
+            if (adminHomeRefreshBtn) adminHomeRefreshBtn.addEventListener('click', refreshAdminAiHubList);
 
             if (manualList) {
                 manualList.addEventListener('click', (event) => {
+                    const btn = event.target.closest('.admin-delete-news-btn');
+                    if (!btn) return;
+                    const id = btn.getAttribute('data-news-id');
+                    deleteManualNews(id);
+                });
+            }
+            if (homeList) {
+                homeList.addEventListener('click', (event) => {
                     const btn = event.target.closest('.admin-delete-news-btn');
                     if (!btn) return;
                     const id = btn.getAttribute('data-news-id');
@@ -1025,7 +1808,10 @@
         setInterval(updateClock, 1000);
         updateClock();
         initAdminPanel();
-        switchMainTab('arabic');
+        initInstallExperience();
+        registerServiceWorker();
+        switchMainTab('aihub');
+        switchAIHubSubTab('aihub-announcements');
         switchArabicSubTab('arabic-local');
         switchGlobalSubTab('global-war');
         switchTechAiSubTab('techai-ai');
