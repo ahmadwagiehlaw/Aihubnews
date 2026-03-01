@@ -2,349 +2,485 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تحديث مباشر: لوحة التغطية الإخبارية التفاعلية</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>نشرة الأخبار الذكية - AI HUB</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap');
+        
+        :root {
+            --primary-bg: #0f172a; /* Slate 900 */
+            --card-bg: #1e293b;    /* Slate 800 */
+            --accent-gold: #d97706; /* Amber 600 */
+            --accent-gold-light: #fbbf24; /* Amber 400 */
+        }
+
         body {
             font-family: 'Tajawal', sans-serif;
-            background-color: #0f172a; /* Slate 900 */
-            color: #f8fafc; /* Slate 50 */
+            background-color: var(--primary-bg);
+            color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
         }
-        .tab-active {
-            border-bottom: 2px solid #ef4444; /* Red 500 */
-            color: #ef4444;
+
+        /* Animations */
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .pulse-live {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        .pulse-fast {
-            animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
+        
+        .pulse-live { animation: pulseLive 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulseLive {
             0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
+            50% { opacity: .4; }
         }
-        /* Custom scrollbar for webkit */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+        /* Custom Scrollbar for desktop, hidden for mobile navs */
+        ::-webkit-scrollbar { width: 6px; height: 4px; }
+        ::-webkit-scrollbar-track { background: var(--primary-bg); }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
-        .new-badge {
-            animation: slideIn 0.5s ease-out;
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Main Tabs Styling */
+        .main-tab {
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
         }
-        @keyframes slideIn {
-            from { transform: translateX(20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        .main-tab.active {
+            border-bottom-color: var(--accent-gold-light);
+            color: var(--accent-gold-light);
+            background-color: rgba(217, 119, 6, 0.1);
+        }
+
+        /* Sub Tabs Styling */
+        .sub-tab {
+            transition: all 0.3s ease;
+            background-color: var(--card-bg);
+            border: 1px solid #334155;
+        }
+        .sub-tab.active {
+            background-color: #ef4444; /* Red 500 */
+            color: white;
+            border-color: #ef4444;
+        }
+        
+        /* Glassmorphism for floating alerts */
+        .glass-alert {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(251, 191, 36, 0.3);
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Header -->
-    <header class="bg-slate-800 border-b-4 border-yellow-600 sticky top-0 z-50 shadow-md">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-4">
-                <div class="bg-white p-1 rounded-full shadow-lg relative h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                    <img src="image_03b921.png" alt="شعار قضاة الذكاء الاصطناعي" class="h-full w-full object-contain" onerror="this.style.display='none'; document.getElementById('fallback-icon').style.display='block';">
-                    <i id="fallback-icon" class="fas fa-balance-scale text-yellow-600 text-3xl hidden"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2 mb-1">
-                        <h1 class="text-xl md:text-2xl font-bold tracking-wide text-yellow-500">التغطية الإخبارية بالذكاء الصناعي</h1>
-                        <div class="w-2 h-2 bg-red-500 rounded-full pulse-fast"></div>
+    <!-- Header Section -->
+    <header class="bg-slate-800 border-b-4 border-amber-600 sticky top-0 z-50 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                
+                <!-- Logo & Branding -->
+                <div class="flex items-center gap-4 w-full md:w-auto">
+                    <div class="bg-white p-1 rounded-full shadow-lg h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-amber-500">
+                        <!-- Updated Logo Path -->
+                        <img src="logo.png" alt="شعار قضاة الذكاء الاصطناعي" class="h-full w-full object-contain" onerror="this.style.display='none'; document.getElementById('fallback-icon').style.display='block';">
+                        <i id="fallback-icon" class="fas fa-balance-scale text-amber-600 text-3xl hidden"></i>
                     </div>
-                    <p class="text-xs text-slate-300 font-medium">برعاية: قضاة الذكاء الاصطناعي (AI HUB) - جروب لتبادل الخبرات</p>
+                    <div class="flex-grow">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h1 class="text-xl md:text-2xl font-bold tracking-wide text-amber-500">نشرة الأخبار الذكية</h1>
+                            <div class="w-2.5 h-2.5 bg-red-500 rounded-full pulse-live shadow-[0_0_8px_#ef4444]"></div>
+                        </div>
+                        <p class="text-xs md:text-sm text-slate-300 font-medium">برعاية: قضاة الذكاء الاصطناعي (AI HUB) - جروب لتبادل الخبرات</p>
+                    </div>
                 </div>
-            </div>
-            <div class="text-sm text-slate-400 flex flex-col items-end">
-                <div class="flex items-center gap-2 text-red-400 font-bold">
-                    <i class="fas fa-sync-alt fa-spin text-xs"></i> آخر تحديث: 1 مارس 2026 - 03:14 صباحاً
+
+                <!-- Clock & Status -->
+                <div class="text-sm text-slate-400 flex flex-row md:flex-col items-center md:items-end gap-2 bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-700">
+                    <div class="flex items-center gap-2 text-red-400 font-bold">
+                        <i class="fas fa-satellite-dish fa-spin-pulse text-xs"></i> <span>بث مباشر لحظي</span>
+                    </div>
+                    <div class="text-xs text-slate-400 font-mono" id="real-time-clock">1 مارس 2026 - 03:55 صباحاً</div>
                 </div>
             </div>
         </div>
         
-        <!-- Navigation Tabs -->
-        <nav class="max-w-6xl mx-auto px-4 flex overflow-x-auto">
-            <button onclick="switchTab('timeline')" id="btn-timeline" class="tab-btn tab-active py-3 px-6 whitespace-nowrap font-medium hover:text-red-400 transition-colors flex items-center gap-2">
-                <i class="fas fa-stream"></i> التسلسل الزمني
+        <!-- Main Navigation Tabs (Scrollable on mobile) -->
+        <nav class="max-w-7xl mx-auto flex overflow-x-auto hide-scroll bg-slate-900/80">
+            <button onclick="switchMainTab('war')" id="main-btn-war" class="main-tab active flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
+                <i class="fas fa-fire-alt text-lg"></i> أخبار الحرب
             </button>
-            <button onclick="switchTab('israel-tracker')" id="btn-israel-tracker" class="tab-btn py-3 px-6 whitespace-nowrap font-medium hover:text-red-400 transition-colors text-slate-400 flex items-center gap-2">
-                <i class="fas fa-crosshairs"></i> الرصد الداخلي (إسرائيل)
+            <button onclick="switchMainTab('economy')" id="main-btn-economy" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
+                <i class="fas fa-chart-line text-lg"></i> الاقتصاد
             </button>
-            <button onclick="switchTab('casualties')" id="btn-casualties" class="tab-btn py-3 px-6 whitespace-nowrap font-medium hover:text-red-400 transition-colors text-slate-400 flex items-center gap-2">
-                <i class="fas fa-chart-bar"></i> تقرير الخسائر الشامل
+            <button onclick="switchMainTab('legal')" id="main-btn-legal" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
+                <i class="fas fa-gavel text-lg"></i> القانون والقضاء
+            </button>
+            <button onclick="switchMainTab('ai')" id="main-btn-ai" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
+                <i class="fas fa-brain text-lg"></i> الذكاء الصناعي
+            </button>
+            <button onclick="switchMainTab('tech')" id="main-btn-tech" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-400">
+                <i class="fas fa-microchip text-lg"></i> التقنية
             </button>
         </nav>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow max-w-6xl mx-auto w-full px-4 py-8">
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-6 mb-10">
 
-        <!-- Section 1: Timeline -->
-        <section id="timeline" class="tab-content animate-fade-in">
-            <h2 class="text-2xl font-bold mb-6 text-slate-200 border-r-4 border-blue-500 pr-3">التسلسل الزمني للأحداث (محدث)</h2>
-            <div class="relative border-r-2 border-slate-700 pr-6 space-y-8 ml-4">
-                
-                <!-- Event 6 (NEW 03:14 AM) -->
-                <div class="relative group new-badge">
-                    <div class="absolute -right-[31px] top-1 w-4 h-4 rounded-full bg-yellow-500 border-4 border-slate-900 pulse-fast"></div>
-                    <div class="bg-slate-800 rounded-lg p-5 shadow-lg border border-yellow-900/50 hover:border-yellow-500 transition-all">
-                        <div class="flex flex-wrap justify-between items-start mb-2">
-                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                                <span class="bg-yellow-600 text-white text-xs px-2 py-0.5 rounded">عاجل</span>
-                                تداعيات الفجر: حراك دبلوماسي واضطراب اقتصادي
-                            </h3>
-                            <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300"><i class="far fa-clock"></i> 1 مارس - 03:10 صباحاً</span>
-                        </div>
-                        <p class="text-slate-300 mb-4 text-sm leading-relaxed">دعوات عاجلة لانعقاد مجلس الأمن. على الصعيد الاقتصادي، العقود الآجلة للنفط تقفز، والمستثمرون يتجهون للملاذات الآمنة كالذهب وسط توقعات بافتتاحيات دامية لأسواق المال.</p>
-                        
-                        <details open class="group/details bg-slate-900 rounded p-3 text-sm cursor-pointer border border-slate-700">
-                            <summary class="font-medium text-yellow-400 flex justify-between items-center outline-none">
-                                <span><i class="fas fa-info-circle"></i> تنويه استثماري (لأعضاء الجروب)</span>
-                                <i class="fas fa-chevron-down transition-transform group-open/details:rotate-180"></i>
-                            </summary>
-                            <div class="mt-3 pt-3 border-t border-slate-700 space-y-2 text-slate-300">
-                                <p><strong class="text-white text-red-400"><i class="fas fa-exclamation-triangle"></i> تذكير هام بإدارة المخاطر:</strong> في أوقات الأزمات الجيوسياسية الحادة، تتزايد تقلبات الأسواق بشكل عنيف. تذكر دائماً ألا تتجاوز نسبة أي سهم أو قطاع <strong>25%</strong> من إجمالي محفظتك الاستثمارية.</p>
-                                <p class="text-xs text-slate-400 mt-2 border-t border-slate-700 pt-2">تذكر الدروس السابقة: التركيز على سهم واحد أو اثنين (مثل أخطاء الاستثمار في مصر للألمونيوم أو أبو قير فقط) يعرضك لمخاطر عالية ويفوت عليك فرص صعود المؤشرات. حافظ على التوازن والهدوء.</p>
-                                <div class="flex items-center gap-2 mt-2">
-                                    <span class="text-white">المصادر الأجنبية:</span>
-                                    <span class="text-blue-400">Bloomberg, Reuters Financial</span>
-                                </div>
+        <!-- ========================================== -->
+        <!-- 1. WAR NEWS SECTION (Contains Sub-Tabs) -->
+        <!-- ========================================== -->
+        <section id="war-section" class="main-content-section animate-fade-in block">
+            
+            <!-- Sub Navigation for War News -->
+            <div class="flex overflow-x-auto hide-scroll gap-2 mb-6 pb-2 border-b border-slate-700">
+                <button onclick="switchSubTab('war-timeline')" id="sub-btn-war-timeline" class="sub-tab active px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2">
+                    <i class="fas fa-clock"></i> تسلسل الأحداث
+                </button>
+                <button onclick="switchSubTab('war-israel')" id="sub-btn-war-israel" class="sub-tab text-slate-300 px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 hover:bg-slate-700">
+                    <i class="fas fa-search-location"></i> رصد الداخل الإسرائيلي
+                </button>
+                <button onclick="switchSubTab('war-casualties')" id="sub-btn-war-casualties" class="sub-tab text-slate-300 px-5 py-2 rounded-full whitespace-nowrap font-medium text-sm flex items-center gap-2 hover:bg-slate-700">
+                    <i class="fas fa-clipboard-list"></i> تقرير الخسائر الشامل
+                </button>
+            </div>
+
+            <!-- War Sub-Content: Timeline -->
+            <div id="war-timeline" class="sub-content-section block">
+                <div class="relative border-r-2 border-slate-700 pr-6 space-y-6 ml-2 md:ml-4">
+                    <!-- Event 1 -->
+                    <div class="relative group">
+                        <div class="absolute -right-[31px] top-1 w-4 h-4 rounded-full bg-red-600 border-4 border-slate-900 pulse-live"></div>
+                        <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-red-900/50 hover:border-red-500 transition-all">
+                            <div class="flex flex-wrap justify-between items-start mb-2 gap-2">
+                                <h3 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
+                                    <span class="bg-red-600 text-white text-xs px-2 py-0.5 rounded">عاجل</span>
+                                    الموجة الثانية: هجمات بحرية ومسيرات
+                                </h3>
+                                <span class="text-xs bg-slate-700 px-2 py-1 rounded text-amber-400 font-mono"><i class="far fa-clock"></i> 01:00 صباحاً</span>
                             </div>
-                        </details>
-                    </div>
-                </div>
-
-                <!-- Event 5 (NEW) -->
-                <div class="relative group new-badge">
-                    <div class="absolute -right-[31px] top-1 w-4 h-4 rounded-full bg-red-600 border-4 border-slate-900 pulse-fast"></div>
-                    <div class="bg-slate-800 rounded-lg p-5 shadow-lg border border-red-900/50 hover:border-red-500 transition-all">
-                        <div class="flex flex-wrap justify-between items-start mb-2">
-                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                                <span class="bg-red-600 text-white text-xs px-2 py-0.5 rounded">عاجل</span>
-                                الموجة الثانية: ضربات بحرية وهجمات بمسيرات
-                            </h3>
-                            <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300"><i class="far fa-clock"></i> 1 مارس - 01:00 صباحاً</span>
-                        </div>
-                        <p class="text-slate-300 mb-4 text-sm leading-relaxed">قوات التحالف (أمريكا وبريطانيا) تشن ضربات مركزة على بطاريات صواريخ ساحلية إيرانية وقواعد للحرس الثوري قرب مضيق هرمز. بالتزامن، إيران تطلق أسراباً جديدة من الطائرات المسيرة "شاهد" باتجاه العمق الإسرائيلي.</p>
-                        
-                        <details open class="group/details bg-slate-900 rounded p-3 text-sm cursor-pointer border border-slate-700">
-                            <summary class="font-medium text-blue-400 flex justify-between items-center outline-none">
-                                <span><i class="fas fa-info-circle"></i> الأثر، المصادر والمصداقية</span>
-                                <i class="fas fa-chevron-down transition-transform group-open/details:rotate-180"></i>
-                            </summary>
-                            <div class="mt-3 pt-3 border-t border-slate-700 space-y-2 text-slate-300">
-                                <p><strong class="text-white">الأثر المباشر:</strong> اشتعال حرائق ضخمة في منشآت ساحلية إيرانية، وتجدد انطلاق صفارات الإنذار في تل أبيب وحيفا.</p>
-                                <p><strong class="text-white">المصادر الأجنبية:</strong> CNN, NYT, بيان رسمي للبنتاغون.</p>
-                                <div class="flex items-center gap-2 mt-2">
-                                    <span class="text-white">المصداقية:</span>
-                                    <div class="flex-grow bg-slate-700 h-2 rounded-full"><div class="bg-green-500 w-full h-full rounded-full"></div></div>
-                                    <span class="text-green-400 font-bold">مؤكد 100%</span>
-                                </div>
+                            <p class="text-slate-300 mb-3 text-sm leading-relaxed">قوات التحالف (أمريكا وبريطانيا) تشن ضربات مركزة على بطاريات صواريخ ساحلية إيرانية. وإيران ترد بإطلاق أسراب من مسيرات "شاهد" نحو إسرائيل وقواعد بالمنطقة.</p>
+                            <div class="text-xs text-slate-400 flex items-center gap-2 border-t border-slate-700 pt-2">
+                                <i class="fas fa-check-circle text-green-500"></i> المصادر: CNN, NYT (مؤكد 100%)
                             </div>
-                        </details>
-                    </div>
-                </div>
-
-                <!-- Event 4 (NEW) -->
-                <div class="relative group new-badge">
-                    <div class="absolute -right-[31px] top-1 w-4 h-4 rounded-full bg-orange-500 border-4 border-slate-900"></div>
-                    <div class="bg-slate-800 rounded-lg p-5 shadow-lg border border-slate-700 hover:border-slate-500 transition-all">
-                        <div class="flex flex-wrap justify-between items-start mb-2">
-                            <h3 class="text-lg font-bold text-white">إصابات مباشرة للبنية التحتية الإسرائيلية</h3>
-                            <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300"><i class="far fa-clock"></i> أواخر ليل 28 فبراير</span>
                         </div>
-                        <p class="text-slate-300 mb-4 text-sm leading-relaxed">نجاح عدد من الصواريخ الباليستية الإيرانية في اختراق درع القبة الحديدية، وتسجيل سقوط مباشر في قاعدة "نيفاتيم" الجوية بصحراء النقب، ومبنى سكني في وسط إسرائيل.</p>
-                        
-                        <details class="group/details bg-slate-900 rounded p-3 text-sm cursor-pointer border border-slate-700">
-                            <summary class="font-medium text-orange-400 flex justify-between items-center outline-none">
-                                <span><i class="fas fa-info-circle"></i> الأثر، المصادر والمصداقية</span>
-                                <i class="fas fa-chevron-down transition-transform group-open/details:rotate-180"></i>
-                            </summary>
-                            <div class="mt-3 pt-3 border-t border-slate-700 space-y-2 text-slate-300">
-                                <p><strong class="text-white">الأثر المباشر:</strong> أضرار مادية في مدرجات القاعدة العسكرية، وانقطاع للتيار الكهربائي في بعض الأحياء المحيطة بمناطق السقوط.</p>
-                                <p><strong class="text-white">المصادر الأجنبية:</strong> صور أقمار صناعية نشرتها The New York Times, تقارير CBS News.</p>
-                                <div class="flex items-center gap-2 mt-2">
-                                    <span class="text-white">المصداقية:</span>
-                                    <div class="flex-grow bg-slate-700 h-2 rounded-full"><div class="bg-green-500 w-[90%] h-full rounded-full"></div></div>
-                                    <span class="text-green-400 font-bold">عالية (موثقة بصور أقمار صناعية)</span>
-                                </div>
+                    </div>
+                    <!-- Event 2 -->
+                    <div class="relative group">
+                        <div class="absolute -right-[31px] top-1 w-4 h-4 rounded-full bg-orange-500 border-4 border-slate-900"></div>
+                        <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-slate-700">
+                            <div class="flex flex-wrap justify-between items-start mb-2 gap-2">
+                                <h3 class="text-base md:text-lg font-bold text-white">إصابات في البنية التحتية الإسرائيلية</h3>
+                                <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono"><i class="far fa-clock"></i> منتصف الليل</span>
                             </div>
-                        </details>
+                            <p class="text-slate-300 mb-3 text-sm leading-relaxed">نجاح صواريخ إيرانية في اختراق القبة الحديدية، وسقوط مباشر في قاعدة "نيفاتيم" بصحراء النقب ومبنى وسط إسرائيل.</p>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Previous Events (Collapsed by default) -->
-                <div class="relative group opacity-75 hover:opacity-100 transition-opacity">
-                    <div class="absolute -right-[31px] top-1 w-4 h-4 rounded-full bg-slate-500 border-4 border-slate-900"></div>
-                    <div class="bg-slate-800/80 rounded-lg p-4 shadow border border-slate-700">
-                        <h3 class="text-base font-bold text-slate-300">أحداث سابقة (28 فبراير: الصباح وحتى المساء)</h3>
-                        <p class="text-slate-400 text-xs mt-2">تتضمن: بدء الهجوم الأمريكي-الإسرائيلي، الرد الإيراني الصاروخي الأول، والتصريحات السياسية المتبادلة. (تم توثيقها مسبقاً عبر AP, Reuters, BBC).</p>
+            <!-- War Sub-Content: Israel Tracker -->
+            <div id="war-israel" class="sub-content-section hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <!-- Card 1 -->
+                    <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-md">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-10 h-10 rounded-full bg-orange-900/50 flex items-center justify-center text-orange-500 text-lg"><i class="fas fa-plane-slash"></i></div>
+                            <div>
+                                <h3 class="font-bold text-base">شلل الطيران والنقل</h3>
+                                <p class="text-[10px] text-slate-400">Bloomberg, Reuters</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-2 text-sm text-slate-300">
+                            <li class="flex items-start gap-2"><i class="fas fa-times-circle text-red-500 mt-1"></i> إغلاق كامل لمطار بن غوريون وتحويل الرحلات.</li>
+                            <li class="flex items-start gap-2"><i class="fas fa-subway text-slate-400 mt-1"></i> توقف تام لخدمات القطارات بين المدن.</li>
+                        </ul>
+                    </div>
+                    <!-- Card 2 -->
+                    <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-md">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-10 h-10 rounded-full bg-yellow-900/50 flex items-center justify-center text-yellow-500 text-lg"><i class="fas fa-running"></i></div>
+                            <div>
+                                <h3 class="font-bold text-base">البنية التحتية والهلع</h3>
+                                <p class="text-[10px] text-slate-400">The Guardian, AP</p>
+                            </div>
+                        </div>
+                        <ul class="space-y-2 text-sm text-slate-300">
+                            <li class="flex items-start gap-2"><i class="fas fa-plug text-red-400 mt-1"></i> انقطاعات كهرباء بوسط إسرائيل نتيجة الشظايا.</li>
+                            <li class="flex items-start gap-2"><i class="fas fa-shield-alt text-orange-400 mt-1"></i> مكوث مئات الآلاف في الملاجئ ليلاً.</li>
+                        </ul>
                     </div>
                 </div>
+            </div>
 
+            <!-- War Sub-Content: Casualties Comprehensive -->
+            <div id="war-casualties" class="sub-content-section hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Iran -->
+                    <div class="bg-slate-800 rounded-xl p-5 border-t-4 border-red-600 shadow-lg relative">
+                        <h3 class="font-bold text-lg text-slate-200 mb-3 flex items-center gap-2"><i class="flag-icon fas fa-map-marker-alt text-red-500"></i> إيران</h3>
+                        <div class="flex justify-between items-end border-b border-slate-700 pb-3 mb-3">
+                            <div><p class="text-3xl font-bold text-red-500">328+</p><p class="text-xs text-slate-400">قتيل مدني/عسكري</p></div>
+                            <div class="text-left"><p class="text-2xl font-bold text-orange-400">1,250+</p><p class="text-xs text-slate-400">مصاب</p></div>
+                        </div>
+                        <p class="text-xs text-slate-300">تدمير واسع في بطاريات الصواريخ الساحلية ومقار قيادية بطهران وبوشهر. (المصدر: الهلال الأحمر عبر Reuters)</p>
+                    </div>
+
+                    <!-- Israel -->
+                    <div class="bg-slate-800 rounded-xl p-5 border-t-4 border-blue-500 shadow-lg relative">
+                        <h3 class="font-bold text-lg text-slate-200 mb-3 flex items-center gap-2"><i class="fas fa-star-of-david text-blue-400"></i> إسرائيل</h3>
+                        <div class="flex justify-between items-end border-b border-slate-700 pb-3 mb-3">
+                            <div><p class="text-3xl font-bold text-blue-400">3</p><p class="text-xs text-slate-400">قتلى (سقوط مباشر)</p></div>
+                            <div class="text-left"><p class="text-2xl font-bold text-red-400">165</p><p class="text-xs text-slate-400">مصاب (هلع/شظايا)</p></div>
+                        </div>
+                        <p class="text-xs text-slate-300">أضرار في مدرجات قاعدتين جويتين بالنقب، ومبنى سكني وسط البلاد. (المصدر: CBS, NYT)</p>
+                    </div>
+
+                    <!-- US Bases & Fleet -->
+                    <div class="bg-slate-800 rounded-xl p-5 border-t-4 border-green-500 shadow-lg relative">
+                        <h3 class="font-bold text-lg text-slate-200 mb-3 flex items-center gap-2"><i class="fas fa-shield-alt text-green-400"></i> القواعد الأمريكية والأسطول</h3>
+                        <div class="flex justify-between items-end border-b border-slate-700 pb-3 mb-3">
+                            <div><p class="text-3xl font-bold text-slate-300">0</p><p class="text-xs text-slate-400">قتلى أمريكيين</p></div>
+                            <div class="text-left"><p class="text-2xl font-bold text-yellow-500">12</p><p class="text-xs text-slate-400">إصابة (ارتجاج دماغي)</p></div>
+                        </div>
+                        <p class="text-xs text-slate-300"><strong>الأسطول الخامس:</strong> حالة استنفار قصوى. اعتراض ناجح لـ 14 مسيرة فوق البحر الأحمر والخليج دون إصابة أي قطع بحرية. أضرار طفيفة بقاعدة في أربيل. (المصدر: CENTCOM)</p>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <!-- Section 2: Israel Internal Tracker -->
-        <section id="israel-tracker" class="tab-content hidden animate-fade-in">
-            <h2 class="text-2xl font-bold mb-6 text-slate-200 border-r-4 border-red-500 pr-3 flex items-center justify-between">
-                <span>تحديث الرصد اللحظي: الداخل الإسرائيلي</span>
-                <span class="text-sm bg-red-600 text-white px-3 py-1 rounded-full flex items-center gap-2"><i class="fas fa-satellite-dish pulse-fast"></i> رصد فجر 1 مارس</span>
-            </h2>
+        <!-- ========================================== -->
+        <!-- 2. ECONOMY SECTION -->
+        <!-- ========================================== -->
+        <section id="economy-section" class="main-content-section hidden animate-fade-in">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <!-- Status Card 1: Aviation & Transport (NEW) -->
-                <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-md">
-                    <div class="flex items-center gap-4 mb-4">
-                        <div class="w-12 h-12 rounded-full bg-orange-900/50 flex items-center justify-center text-orange-500 text-xl">
-                            <i class="fas fa-plane-slash"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg">شلل حركة الطيران والنقل</h3>
-                            <p class="text-xs text-slate-400">المصدر: Bloomberg, Reuters</p>
-                        </div>
-                    </div>
-                    <ul class="space-y-3 text-sm text-slate-300">
-                        <li class="flex items-start gap-2"><i class="fas fa-times-circle text-red-500 mt-1"></i> إغلاق كامل لمطار بن غوريون (Ben Gurion) وتحويل كافة الرحلات.</li>
-                        <li class="flex items-start gap-2"><i class="fas fa-exclamation-triangle text-yellow-500 mt-1"></i> إغلاق المجال الجوي الإسرائيلي بالكامل أمام الطيران المدني.</li>
-                        <li class="flex items-start gap-2"><i class="fas fa-subway text-slate-400 mt-1"></i> توقف شبه تام لخدمات القطارات بين المدن الكبرى لدواعٍ أمنية.</li>
-                    </ul>
-                </div>
-
-                <!-- Status Card 2: Infrastructure & Panic (NEW) -->
-                <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-md">
-                    <div class="flex items-center gap-4 mb-4">
-                        <div class="w-12 h-12 rounded-full bg-yellow-900/50 flex items-center justify-center text-yellow-500 text-xl">
-                            <i class="fas fa-bolt"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg">البنية التحتية وحالة الهلع</h3>
-                            <p class="text-xs text-slate-400">المصدر: The Guardian, AP</p>
-                        </div>
-                    </div>
-                    <ul class="space-y-3 text-sm text-slate-300">
-                        <li class="flex items-start gap-2"><i class="fas fa-plug text-red-400 mt-1"></i> انقطاعات متفرقة للكهرباء في أحياء بوسط إسرائيل نتيجة شظايا الصواريخ.</li>
-                        <li class="flex items-start gap-2"><i class="fas fa-running text-orange-400 mt-1"></i> استمرار مكوث مئات الآلاف في الملاجئ طوال الليل.</li>
-                        <li class="flex items-start gap-2"><i class="fas fa-box-open text-blue-400 mt-1"></i> تقارير عن نقص في السلع الأساسية ببعض المتاجر نتيجة تهافت المواطنين.</li>
-                        <li class="flex items-start gap-2"><i class="fas fa-chart-line text-red-500 mt-1"></i> توقعات بتعليق التداول في بورصة تل أبيب (TASE) صباحاً تفادياً لانهيار المؤشرات.</li>
-                    </ul>
-                </div>
-
-                <!-- Status Card 3: Military Bases (NEW) -->
-                <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-md md:col-span-2 relative overflow-hidden">
-                    <div class="absolute -left-4 -top-4 text-8xl text-slate-700/20"><i class="fas fa-meteor"></i></div>
-                    <div class="flex items-center gap-4 mb-4 relative z-10">
-                        <div class="w-12 h-12 rounded-full bg-red-900/50 flex items-center justify-center text-red-500 text-xl">
-                            <i class="fas fa-crosshairs"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg">تأثر القواعد العسكرية الإسرائيلية</h3>
-                            <p class="text-xs text-slate-400">المصدر: The New York Times, Washington Post</p>
-                        </div>
-                    </div>
-                    <p class="text-sm text-slate-300 relative z-10 mb-2">
-                        أكدت تحليلات صور الأقمار الصناعية الغربية تعرض قاعدتين جويتين على الأقل في صحراء النقب لأضرار مباشرة بعد اختراق صواريخ باليستية إيرانية (يعتقد أنها فرط صوتية) لشبكات الدفاع الجوي المتعددة الطبقات. الأضرار شملت مدارج طيران ومخازن، دون الإعلان رسمياً عن تضرر طائرات مقاتلة حتى اللحظة.
+            <!-- INVESTMENT WARNING BOX (Personalized) -->
+            <div class="glass-alert rounded-xl p-5 mb-8 border-l-4 border-l-amber-500 relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 text-7xl text-amber-500/10"><i class="fas fa-exclamation-triangle"></i></div>
+                <h3 class="text-xl font-bold text-amber-400 flex items-center gap-2 mb-3 relative z-10">
+                    <i class="fas fa-bell animate-bounce"></i> تنبيه استثماري هام وعاجل (خاص بالمحفظة)
+                </h3>
+                <div class="text-sm md:text-base text-slate-200 leading-relaxed relative z-10 space-y-3">
+                    <p>في ظل الانهيارات العنيفة للأسواق اليوم بسبب الحرب، <strong>أذكرك بالقاعدة الذهبية الصارمة:</strong></p>
+                    <p class="bg-red-900/40 p-3 rounded-lg border border-red-500/30 text-red-200 font-bold">
+                        🚫 لا تتجاوز نسبة أي سهم أو قطاع 25% من إجمالي قيمة محفظتك! (مثال: إذا كانت محفظتك 400 ألف جنيه، يجب ألا يتخطى أي سهم 100 ألف جنيه تحت أي ظرف).
+                    </p>
+                    <p class="text-slate-300 text-sm">
+                        <i class="fas fa-history text-amber-500"></i> تذكر الألم والخسارة النفسية والمادية عندما ركزت محفظتك سابقاً في سهم واحد أو اثنين فقط مثل <strong>(مصر للألمونيوم)</strong> أو <strong>(أبو قير للأسمدة)</strong>. التركيز يفوت عليك فرص صعود المؤشرات وقطاعات أخرى، ويعرضك لانهيار قاسي في أوقات الأزمات الجيوسياسية. نوّع محفظتك فوراً والزم الهدوء.
                     </p>
                 </div>
             </div>
+
+            <h2 class="text-xl font-bold mb-5 text-slate-200 border-r-4 border-green-500 pr-3">مؤشرات الأسواق اللحظية</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
+                    <p class="text-slate-400 text-xs mb-1">النفط (برنت)</p>
+                    <p class="text-xl md:text-2xl font-bold text-green-400 flex justify-center items-center gap-1"><i class="fas fa-caret-up"></i> $94.50</p>
+                    <p class="text-[10px] text-green-500">+7.2%</p>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
+                    <p class="text-slate-400 text-xs mb-1">الذهب (أونصة)</p>
+                    <p class="text-xl md:text-2xl font-bold text-green-400 flex justify-center items-center gap-1"><i class="fas fa-caret-up"></i> $2,450</p>
+                    <p class="text-[10px] text-green-500">+3.8%</p>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
+                    <p class="text-slate-400 text-xs mb-1">مؤشر S&P 500 (عقود)</p>
+                    <p class="text-xl md:text-2xl font-bold text-red-500 flex justify-center items-center gap-1"><i class="fas fa-caret-down"></i> 4,920</p>
+                    <p class="text-[10px] text-red-500">-4.1%</p>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-center">
+                    <p class="text-slate-400 text-xs mb-1">البورصة المصرية (EGX30)</p>
+                    <p class="text-xl md:text-2xl font-bold text-red-500 flex justify-center items-center gap-1"><i class="fas fa-caret-down"></i> إيقاف</p>
+                    <p class="text-[10px] text-slate-400">تراجع حاد بالافتتاح</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-slate-800 rounded-lg p-4 border-r-4 border-red-500 shadow-sm flex flex-col md:flex-row gap-4 items-start">
+                    <div class="bg-slate-700 p-2 rounded text-slate-300 text-xs font-mono min-w-[70px] text-center">02:30 ص</div>
+                    <div>
+                        <h4 class="font-bold text-white mb-1">هروب جماعي للملاذات الآمنة</h4>
+                        <p class="text-sm text-slate-400">صناديق الاستثمار العالمية تسيل أصولها بالأسواق الناشئة وتوجه مليارات الدولارات نحو الذهب والسندات الأمريكية وسط مخاوف من إغلاق مضيق هرمز.</p>
+                    </div>
+                </div>
+            </div>
         </section>
 
-        <!-- Section 3: Casualties Report -->
-        <section id="casualties" class="tab-content hidden animate-fade-in">
-            <h2 class="text-2xl font-bold mb-6 text-slate-200 border-r-4 border-slate-500 pr-3">الإحصاءات الرسمية المحدثة للخسائر</h2>
-            <p class="text-sm text-slate-400 mb-6 flex items-center gap-2">
-                <i class="fas fa-exclamation-circle text-yellow-500"></i> تم التحديث بناءً على التقارير الغربية (فجر 1 مارس). الأرقام في تصاعد مستمر.
-            </p>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Israel Stats (UPDATED) -->
-                <div class="bg-slate-800 rounded-xl p-6 border-t-4 border-blue-500 shadow-lg text-center relative">
-                    <div class="absolute top-2 left-2 bg-red-600 text-xs px-2 py-1 rounded text-white animate-pulse">تحديث جديد</div>
-                    <h3 class="text-xl font-bold text-slate-200 mb-4">إسرائيل</h3>
-                    <div class="flex justify-around items-end mt-4">
-                        <div>
-                            <p class="text-4xl font-bold text-red-400">165</p>
-                            <p class="text-sm text-slate-400 mt-1">مصاب</p>
-                        </div>
-                        <div>
-                            <p class="text-4xl font-bold text-red-600">3</p>
-                            <p class="text-sm text-slate-400 mt-1">قتلى (مؤكد)</p>
-                        </div>
+        <!-- ========================================== -->
+        <!-- 3. LEGAL NEWS SECTION (Egypt) -->
+        <!-- ========================================== -->
+        <section id="legal-section" class="main-content-section hidden animate-fade-in">
+            <h2 class="text-xl font-bold mb-6 text-slate-200 border-r-4 border-slate-400 pr-3">أحدث التطورات: القانون والقضاء المصري</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-amber-500/50 transition-colors">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="bg-amber-900/50 text-amber-400 text-xs px-2 py-1 rounded border border-amber-700/50"><i class="fas fa-gavel"></i> محكمة النقض</span>
+                        <span class="text-xs text-slate-400 font-mono">أمس 14:00</span>
                     </div>
-                    <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-400 text-right leading-relaxed">
-                        <strong>الأضرار:</strong> تسجيل 3 وفيات إثر سقوط مباشر على مبنى سكني. ارتفاع أعداد المصابين (أغلبهم حالات هلع، التواءات أثناء الركض للملاجئ، وشظايا). إغلاق كامل لمطار بن غوريون، وأضرار مادية في قواعد عسكرية بالنقب. (المصادر: CBS, NYT, Bloomberg)
+                    <h3 class="font-bold text-lg text-white mb-2">إرساء مبدأ جديد حول الأدلة الرقمية الجنائية</h3>
+                    <p class="text-sm text-slate-300 leading-relaxed mb-4">أصدرت محكمة النقض حكماً تاريخياً يعتد برسائل "واتساب" والمقاطع الصوتية المشفرة كدليل إدانة كامل متى ثبتت صحتها فنياً عبر إدارة المساعدات الفنية بوزارة الداخلية، دون الحاجة لشهود إثبات تقليديين.</p>
+                    <button class="text-amber-500 text-xs font-bold hover:underline">قراءة حيثيات الحكم <i class="fas fa-arrow-left ml-1"></i></button>
+                </div>
+
+                <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-amber-500/50 transition-colors">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="bg-blue-900/50 text-blue-400 text-xs px-2 py-1 rounded border border-blue-700/50"><i class="fas fa-landmark"></i> مجلس الدولة</span>
+                        <span class="text-xs text-slate-400 font-mono">أمس 11:30</span>
+                    </div>
+                    <h3 class="font-bold text-lg text-white mb-2">إلزام الجهات الإدارية بالتقاضي الإلكتروني</h3>
+                    <p class="text-sm text-slate-300 leading-relaxed mb-4">أصدر رئيس مجلس الدولة قراراً تنظيمياً ببدء المرحلة الثانية من التقاضي عن بعد، مُلزماً الهيئات الحكومية بتقديم مذكرات الدفاع والمستندات إلكترونياً حصراً أمام محاكم القضاء الإداري اعتباراً من الشهر القادم.</p>
+                    <button class="text-amber-500 text-xs font-bold hover:underline">تفاصيل القرار الإداري <i class="fas fa-arrow-left ml-1"></i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 4. AI NEWS SECTION -->
+        <!-- ========================================== -->
+        <section id="ai-section" class="main-content-section hidden animate-fade-in">
+            <h2 class="text-xl font-bold mb-6 text-slate-200 border-r-4 border-purple-500 pr-3">مستجدات الذكاء الاصطناعي</h2>
+            
+            <div class="space-y-4">
+                <!-- AI Event 1 -->
+                <div class="bg-slate-800 rounded-lg p-5 border-l-4 border-l-purple-500 shadow flex flex-col md:flex-row gap-5 items-start">
+                    <div class="w-16 h-16 rounded-lg bg-purple-900/30 flex items-center justify-center text-purple-400 text-2xl flex-shrink-0">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <h3 class="font-bold text-lg text-white">إطلاق نماذج قانونية متخصصة من "AI HUB"</h3>
+                            <span class="bg-red-500/20 text-red-400 text-[10px] px-2 py-0.5 rounded">حصري للجروب</span>
+                        </div>
+                        <p class="text-sm text-slate-300 leading-relaxed mb-2">أعلن جروب "قضاة الذكاء الاصطناعي" عن توفير أدلة استرشادية جديدة لاستخدام النماذج اللغوية (LLMs) في صياغة العقود التجارية واستخلاص الثغرات القانونية من محاضر الجلسات بدقة تصل إلى 94%.</p>
+                        <span class="text-xs text-slate-500"><i class="far fa-clock"></i> منذ ساعتين</span>
                     </div>
                 </div>
 
-                <!-- Iran Stats (UPDATED) -->
-                <div class="bg-slate-800 rounded-xl p-6 border-t-4 border-red-500 shadow-lg text-center relative">
-                    <div class="absolute top-2 left-2 bg-red-600 text-xs px-2 py-1 rounded text-white animate-pulse">تحديث جديد</div>
-                    <h3 class="text-xl font-bold text-slate-200 mb-4">إيران</h3>
-                    <div class="flex justify-around items-end mt-4">
-                        <div>
-                            <p class="text-4xl font-bold text-orange-400">1,250+</p>
-                            <p class="text-sm text-slate-400 mt-1">مصاب</p>
-                        </div>
-                        <div>
-                            <p class="text-4xl font-bold text-red-600">328+</p>
-                            <p class="text-sm text-slate-400 mt-1">قتيل</p>
-                        </div>
+                <!-- AI Event 2 -->
+                <div class="bg-slate-800 rounded-lg p-5 border-l-4 border-l-blue-500 shadow flex flex-col md:flex-row gap-5 items-start">
+                    <div class="w-16 h-16 rounded-lg bg-blue-900/30 flex items-center justify-center text-blue-400 text-2xl flex-shrink-0">
+                        <i class="fas fa-brain"></i>
                     </div>
-                    <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-400 text-right leading-relaxed">
-                        <strong>الأضرار:</strong> تدمير واسع في منشآت صاروخية ساحلية وقواعد بحرية في الموجة الثانية. ارتفاع كبير في حصيلة الضحايا المدنيين والعسكريين إثر القصف العنيف. (المصادر: Reuters نقلاً عن الهلال الأحمر الإيراني)
+                    <div>
+                        <h3 class="font-bold text-lg text-white mb-1">تحديث جذري في قدرات "Gemini" للتحليل المالي</h3>
+                        <p class="text-sm text-slate-300 leading-relaxed mb-2">جوجل تطلق تحديثاً يتيح للذكاء الاصطناعي ربط الأخبار الجيوسياسية اللحظية (كالحرب الحالية) بتحليل بيانات الأسهم في أسواق الشرق الأوسط وتقديم تقارير إدارة مخاطر فورية.</p>
+                        <span class="text-xs text-slate-500"><i class="far fa-clock"></i> أمس</span>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <!-- US & Allies Stats (UPDATED) -->
-                <div class="bg-slate-800 rounded-xl p-6 border-t-4 border-green-500 shadow-lg text-center">
-                    <h3 class="text-xl font-bold text-slate-200 mb-4">القواعد الأمريكية ودول المنطقة</h3>
-                    <div class="flex justify-around items-end mt-4">
-                        <div>
-                            <p class="text-4xl font-bold text-yellow-500">12</p>
-                            <p class="text-sm text-slate-400 mt-1">إصابات (أمريكية)</p>
-                        </div>
-                        <div>
-                            <p class="text-4xl font-bold text-red-500">1</p>
-                            <p class="text-sm text-slate-400 mt-1">قتيل (مدني بالإمارات)</p>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-400 text-right leading-relaxed">
-                        <strong>الأضرار:</strong> تسجيل إصابات ارتجاج دماغي (TBI) طفيفة بين جنود أمريكيين في قاعدة بأربيل (العراق). لا توجد وفيات أمريكية. (المصدر: بيانات CENTCOM)
-                    </div>
+        <!-- ========================================== -->
+        <!-- 5. TECH NEWS SECTION -->
+        <!-- ========================================== -->
+        <section id="tech-section" class="main-content-section hidden animate-fade-in">
+            <h2 class="text-xl font-bold mb-6 text-slate-200 border-r-4 border-cyan-500 pr-3">أخبار التقنية والأمن السيبراني</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col items-center text-center">
+                    <i class="fas fa-satellite text-4xl text-cyan-400 mb-3"></i>
+                    <h3 class="font-bold text-white mb-2">اضطراب Starlink</h3>
+                    <p class="text-xs text-slate-400">تقارير عن تشويش واسع النطاق على إشارات الإنترنت الفضائي في منطقة الشرق الأوسط تزامناً مع العمليات العسكرية الجوية.</p>
+                </div>
+                
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col items-center text-center">
+                    <i class="fas fa-shield-virus text-4xl text-red-400 mb-3"></i>
+                    <h3 class="font-bold text-white mb-2">حرب سيبرانية موازية</h3>
+                    <p class="text-xs text-slate-400">مجموعات قرصنة مدعومة من دول تستهدف البنية التحتية للمستشفيات وشبكات الكهرباء في كل من إسرائيل وإيران منذ الفجر.</p>
+                </div>
+
+                <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex flex-col items-center text-center">
+                    <i class="fas fa-mobile-alt text-4xl text-slate-300 mb-3"></i>
+                    <h3 class="font-bold text-white mb-2">تحديثات أمنية طارئة</h3>
+                    <p class="text-xs text-slate-400">آبل وجوجل تدفعان بتحديثات أمنية "Zero-day" لهواتف المستخدمين بالمنطقة لسد ثغرات تُستخدم في برمجيات التجسس العسكري.</p>
                 </div>
             </div>
         </section>
 
     </main>
 
-    <footer class="bg-slate-900 border-t border-slate-800 py-6 mt-auto text-center text-slate-500 text-sm">
-        <p>البيانات محدثة آلياً بناءً على تغطيات وكالات الأنباء الأجنبية (AP, Reuters, CNN, NYT) حتى الساعة 03:14 صباحاً (بتوقيت القاهرة) - 1 مارس 2026.</p>
-        <p class="mt-2 font-bold text-yellow-600">هذه التغطية برعاية: قضاة الذكاء الاصطناعي (AI HUB) - جروب لتبادل الخبرات.</p>
-        <p class="mt-1 text-xs text-slate-600">يُرجى الانتباه: أرقام الخسائر قد تتغير بسرعة نظراً لطبيعة الأحداث الجارية.</p>
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <div class="flex justify-center items-center gap-3 mb-4">
+                <img src="logo.png" alt="AI HUB" class="h-8 w-8 object-contain" onerror="this.style.display='none';">
+                <h3 class="font-bold text-amber-500 text-lg">قضاة الذكاء الاصطناعي (AI HUB)</h3>
+            </div>
+            <p class="text-slate-500 text-sm mb-2">نشرة الأخبار الذكية - تجميع وتحليل لحظي للأحداث العالمية والمحلية.</p>
+            <p class="text-xs text-slate-600">جميع البيانات واردة من وكالات الأنباء الموثوقة والمصادر الرسمية، وتخضع للمراجعة الآلية. التنبيهات الاستثمارية هي نصائح لإدارة المخاطر وليست توصيات بيع أو شراء.</p>
+        </div>
     </footer>
 
+    <!-- JavaScript for Interactions -->
     <script>
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => {
-                el.classList.add('hidden');
-            });
-            
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('tab-active', 'text-red-400');
-                el.classList.add('text-slate-400');
+        // Update live clock
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('real-time-clock').innerHTML = `1 مارس 2026 - ${timeString}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Switch Main Tabs (Sections)
+        function switchMainTab(tabName) {
+            // Hide all main sections
+            const sections = document.querySelectorAll('.main-content-section');
+            sections.forEach(sec => {
+                sec.classList.remove('block');
+                sec.classList.add('hidden');
             });
 
-            document.getElementById(tabId).classList.remove('hidden');
+            // Remove active state from all main buttons
+            const buttons = document.querySelectorAll('.main-tab');
+            buttons.forEach(btn => {
+                btn.classList.remove('active', 'border-amber-400', 'text-amber-400');
+                btn.classList.add('border-transparent', 'text-slate-400');
+            });
+
+            // Show selected section
+            document.getElementById(`${tabName}-section`).classList.remove('hidden');
+            document.getElementById(`${tabName}-section`).classList.add('block');
             
-            const activeBtn = document.getElementById('btn-' + tabId);
-            activeBtn.classList.remove('text-slate-400');
-            activeBtn.classList.add('tab-active');
+            // Set active state on clicked button
+            const activeBtn = document.getElementById(`main-btn-${tabName}`);
+            activeBtn.classList.add('active');
+            
+            // Scroll selected tab into view on mobile
+            activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        // Switch Sub Tabs (Inside War Section)
+        function switchSubTab(subTabId) {
+            // Hide all sub contents
+            const subContents = document.querySelectorAll('.sub-content-section');
+            subContents.forEach(content => {
+                content.classList.remove('block');
+                content.classList.add('hidden');
+            });
+
+            // Remove active classes from all sub buttons
+            const subBtns = document.querySelectorAll('.sub-tab');
+            subBtns.forEach(btn => {
+                btn.classList.remove('active', 'bg-red-500', 'text-white');
+                btn.classList.add('text-slate-300', 'bg-slate-800');
+            });
+
+            // Show selected sub content
+            document.getElementById(subTabId).classList.remove('hidden');
+            document.getElementById(subTabId).classList.add('block');
+            
+            // Add active class to clicked button
+            const activeBtn = document.getElementById(`sub-btn-${subTabId}`);
+            activeBtn.classList.add('active');
+            activeBtn.classList.remove('text-slate-300', 'bg-slate-800');
         }
     </script>
 </body>
