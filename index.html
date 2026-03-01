@@ -1181,6 +1181,17 @@
         }
 
         async function fetchApi(path, options = {}) {
+            const IS_STATIC_HOST = window.location.hostname.includes('github.io');
+            if (IS_STATIC_HOST) {
+                if (path.startsWith('/api/news')) {
+                    return await fetch('data/news.json', { cache: 'no-store' });
+                }
+                if (path.startsWith('/api/market-snapshot')) {
+                    return await fetch('data/market.json', { cache: 'no-store' });
+                }
+                throw new Error('Static host does not support this API endpoint');
+            }
+
             if (!APP_STATE.apiReady) {
                 if (APP_STATE.lastApiFailureAt && (Date.now() - APP_STATE.lastApiFailureAt < API_RETRY_COOLDOWN_MS)) {
                     throw new Error('API unavailable (cooldown)');

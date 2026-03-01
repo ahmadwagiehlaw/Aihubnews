@@ -2182,4 +2182,35 @@ function startServerWithPortFallback() {
   startAt(0);
 }
 
-startServerWithPortFallback();
+if (process.argv.includes('--build')) {
+  (async () => {
+    try {
+      ensureDataStore();
+      console.log('Building static news payload...');
+      const payload = await getMergedNews(true);
+      const newsPath = path.join(DATA_DIR, 'news.json');
+      await fs.promises.writeFile(newsPath, JSON.stringify({
+        ok: true,
+        api_signature: API_SIGNATURE,
+        ...payload
+      }, null, 2));
+      console.log(`Successfully built ${newsPath}`);
+
+      console.log('Building static market snapshot...');
+      const marketPayload = await fetchYahooQuoteSnapshot();
+      const marketPath = path.join(DATA_DIR, 'market.json');
+      await fs.promises.writeFile(marketPath, JSON.stringify({
+        ok: true,
+        ...marketPayload
+      }, null, 2));
+      console.log(`Successfully built ${marketPath}`);
+
+      process.exit(0);
+    } catch (err) {
+      console.error('Build failed:', err);
+      process.exit(1);
+    }
+  })();
+} else {
+  startServerWithPortFallback();
+}

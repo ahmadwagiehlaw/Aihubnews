@@ -454,6 +454,26 @@
       "summary": "How Saudi Arabia is responding to Middle East bombardment CNN",
       "by": "fallback",
       "updated_at": "2026-03-01T16:55:17.550Z"
+    },
+    "https://www.nytimes.com/2026/03/01/technology/anthropic-defense-dept-openai-talks.html": {
+      "summary": "The Pentagon and Anthropic were close to agreeing on the use of artificial intelligence. But strong personalities, mutual dislike and a rival company unraveled a deal.",
+      "by": "fallback",
+      "updated_at": "2026-03-01T19:16:15.116Z"
+    },
+    "https://www.bloomberg.com/": {
+      "summary": "New Oil Geopolitics Laid Bare By Iran Conflict Bloomberg",
+      "by": "fallback",
+      "updated_at": "2026-03-01T20:36:15.647Z"
+    },
+    "https://www.nytimes.com/2026/03/01/business/energy-environment/iran-war-oil-prices.html": {
+      "summary": "Prices of oil and other commodities are expected to jump when trading resumes on Sunday, but how long they will stay high will depend on what the United States, Israel and Iran do next.",
+      "by": "fallback",
+      "updated_at": "2026-03-01T21:26:23.839Z"
+    },
+    "https://www.nytimes.com/2026/03/01/business/stock-market-iran-war-fallout.html": {
+      "summary": "Wall Street has largely shrugged off geopolitical upheaval in recent years. But the United States’ war against Iran comes at a more precarious time for the stock market.",
+      "by": "fallback",
+      "updated_at": "2026-03-01T21:46:15.605Z"
     }
   }
 }
