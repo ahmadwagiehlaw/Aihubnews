@@ -49,6 +49,7 @@ const AUTO_NEWS_CATEGORIES = ['war', 'local', 'economy', 'ai', 'tech'];
 const NEWS_SCOPES = ['global', 'local'];
 const AIHUB_SECTIONS = ['announcements', 'tools', 'community', 'tutorials'];
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
+const API_SIGNATURE = 'aihub-news-v4';
 
 const cache = {
   updatedAt: 0,
@@ -68,8 +69,10 @@ const summaryStore = {
 
 const ALLOWED_STATIC = new Set([
   '/index.html',
+  '/icon.png',
   '/logo.png',
-  '/Gemini_Generated_Image_5rtz8m5rtz8m5rtz.png'
+  '/manifest.webmanifest',
+  '/sw.js'
 ]);
 
 const MIME_TYPES = {
@@ -80,6 +83,7 @@ const MIME_TYPES = {
   '.webp': 'image/webp',
   '.js': 'application/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8'
 };
@@ -100,10 +104,23 @@ const TRUSTED_DOMAINS = [
   'youm7.com',
   'aawsat.com',
   'shorouknews.com',
+  'masrawy.com',
+  'dostor.org',
+  'cairo24.com',
+  'news.google.com',
+  'google.com',
   'scotusblog.com',
   'judiciary.uk',
   'openai.com',
-  'blog.google'
+  'blog.google',
+  'almasryalyoum.com',
+  'akhbaralyom.com',
+  'gate.ahram.org.eg',
+  'ahram.org.eg',
+  'alwafd.news',
+  'elbalad.news',
+  'akhbarelyom.com',
+  'bbc.co.uk'
 ];
 
 const RSS_FEEDS = {
@@ -135,7 +152,11 @@ const RSS_FEEDS = {
   ]
 };
 
-const BASE_LOCAL_ARABIC_FEEDS = ['https://feeds.bbci.co.uk/arabic/rss.xml'];
+const BASE_LOCAL_ARABIC_FEEDS = [
+  'https://feeds.bbci.co.uk/arabic/rss.xml',
+  'https://www.skynewsarabia.com/web/rss',
+  'https://news.google.com/rss?hl=ar&gl=EG&ceid=EG:ar'
+];
 const LOCAL_NEWS_QUERIES = {
   war: ['الأخبار الجيوسياسية', 'مصر السياسة الخارجية'],
   local: ['أخبار مصر', 'مصر الآن'],
@@ -173,9 +194,9 @@ const CATEGORY_LABELS_AR = {
 };
 
 const LOCAL_CATEGORY_KEYWORDS = {
-  war: ['حرب', 'صراع', 'عسكري', 'غزة', 'أوكرانيا', 'هدنة', 'هجوم', 'نزاع', 'إيران', 'إسرائيل'],
-  local: ['مصر', 'القاهرة', 'مصري', 'الحكومة', 'محلي', 'وزارة', 'البرلمان', 'محافظ'],
-  economy: ['اقتصاد', 'تضخم', 'فائدة', 'بنك', 'مالية', 'أسواق', 'نفط', 'سندات', 'عملة', 'صندوق'],
+  war: ['حرب', 'صراع', 'عسكري', 'غزة', 'أوكرانيا', 'هدنة', 'هجوم', 'نزاع', 'إيران', 'إسرائيل', 'war', 'conflict', 'military', 'geopolit', 'ceasefire', 'iran', 'israel', 'ukraine'],
+  local: ['مصر', 'القاهرة', 'مصري', 'الحكومة', 'محلي', 'وزارة', 'البرلمان', 'محافظ', 'egypt', 'cairo', 'regional', 'middle east', 'north africa', 'government', 'ministry'],
+  economy: ['اقتصاد', 'تضخم', 'فائدة', 'بنك', 'مالية', 'أسواق', 'نفط', 'سندات', 'عملة', 'صندوق', 'economy', 'inflation', 'interest', 'rate', 'central bank', 'market', 'oil', 'fund'],
   legal: ['قانون', 'محكمة', 'قضية', 'قضائي', 'حكم', 'تشريع', 'دستور', 'نيابة', 'عدالة'],
   ai: ['ذكاء', 'اصطناعي', 'نموذج', 'تعلم', 'روبوت', 'Gemini', 'OpenAI', 'AI'],
   tech: ['تقنية', 'تكنولوجيا', 'سيبراني', 'اختراق', 'هاتف', 'برمجيات', 'رقمي', 'إنترنت']
@@ -608,6 +629,11 @@ function looksArabicText(input) {
   return /[\u0600-\u06FF]/.test(String(input || ''));
 }
 
+function looksLocalRegionalSignal(input) {
+  const text = String(input || '').toLowerCase();
+  return /egypt|cairo|middle east|mideast|north africa|regional|arab|مصر|القاهرة|إقليمي|محلي|الشرق الأوسط/.test(text);
+}
+
 function normalizeHttpUrl(value) {
   if (!value) return '';
   try {
@@ -624,6 +650,18 @@ function normalizeImageUrl(value) {
   const text = String(value).trim();
   if (text.startsWith('data:image/')) return text;
   return normalizeHttpUrl(text);
+}
+
+function normalizeVideoUrl(value) {
+  const urlValue = normalizeHttpUrl(value);
+  if (!urlValue) return '';
+  return urlValue;
+}
+
+function normalizePdfUrl(value) {
+  const urlValue = normalizeHttpUrl(value);
+  if (!urlValue) return '';
+  return urlValue;
 }
 
 function sourceDomain(urlValue) {
@@ -643,7 +681,6 @@ function isTrustedSourceUrl(urlValue) {
 function normalizeScope(rawScope, category, title, summary, sourceUrl) {
   const candidate = String(rawScope || '').trim().toLowerCase();
   if (NEWS_SCOPES.includes(candidate)) return candidate;
-  if (category === 'local') return 'local';
 
   const host = sourceDomain(sourceUrl);
   const text = `${String(title || '')} ${String(summary || '')}`;
@@ -771,13 +808,28 @@ function parseRssItems(xmlText) {
     return img ? decodeXmlEntities(img[1]) : '';
   };
 
-  return blocks.map((block) => ({
-    title: extractTag(block, 'title'),
-    description: extractTag(block, 'description') || extractTag(block, 'summary') || extractTag(block, 'content'),
-    link: extractLink(block),
-    pubDate: extractTag(block, 'pubDate') || extractTag(block, 'updated') || extractTag(block, 'published'),
-    image: extractImage(block)
-  }));
+  const extractSource = (block) => {
+    const match = block.match(/<source\b([^>]*)>([\s\S]*?)<\/source>/i);
+    if (!match) return { sourceName: '', sourceUrl: '' };
+    const attrs = match[1] || '';
+    const sourceName = decodeXmlEntities(stripHtml(match[2] || '')).trim();
+    const urlMatch = attrs.match(/url=["']([^"']+)["']/i);
+    const sourceUrl = urlMatch ? decodeXmlEntities(urlMatch[1]) : '';
+    return { sourceName, sourceUrl };
+  };
+
+  return blocks.map((block) => {
+    const sourceMeta = extractSource(block);
+    return {
+      title: extractTag(block, 'title'),
+      description: extractTag(block, 'description') || extractTag(block, 'summary') || extractTag(block, 'content'),
+      link: extractLink(block),
+      pubDate: extractTag(block, 'pubDate') || extractTag(block, 'updated') || extractTag(block, 'published'),
+      image: extractImage(block),
+      sourceName: sourceMeta.sourceName,
+      sourceUrl: sourceMeta.sourceUrl
+    };
+  });
 }
 
 async function fetchText(url, timeoutMs = 10000) {
@@ -803,13 +855,13 @@ function normalizedAutoItem(raw, category, origin) {
   if (!sourceUrl) return null;
 
   const title = String(raw.title || '').trim();
-  const summary = excerpt(raw.summary || raw.description || '', 240);
+  const summary = excerpt(raw.summary || raw.description || raw.title || '', 240);
   const source = String(raw.source || '').trim() || sourceDomain(sourceUrl);
   const publishedAt = String(raw.published_at || raw.pubDate || '').trim();
   const imageUrl = normalizeImageUrl(raw.image_url || raw.image || '');
 
-  if (!title || title.length < 6) return null;
-  if (!summary || summary.length < 20) return null;
+  if (!title || title.length < 5) return null;
+  if (!summary || summary.length < 12) return null;
 
   return {
     id: `auto_${crypto.randomBytes(6).toString('hex')}`,
@@ -834,18 +886,20 @@ async function fetchCategoryFromRss(category, scope = 'global') {
   for (const feedUrl of feeds) {
     try {
       const xml = await fetchText(feedUrl, 9000);
-      const parsed = parseRssItems(xml)
+      const mapped = parseRssItems(xml)
         .map((item) => {
-          const sourceUrl = normalizeHttpUrl(item.link);
-          const sourceName = sourceDomain(sourceUrl).replace(/^www\./, '');
+          const sourceUrl = normalizeHttpUrl(item.sourceUrl || item.link);
+          const sourceName = String(item.sourceName || sourceDomain(sourceUrl).replace(/^www\./, '')).trim();
           const contentText = `${item.title || ''} ${item.description || ''}`;
+          const sourceHost = sourceDomain(sourceUrl);
+          const localSignal = looksLocalRegionalSignal(`${contentText} ${sourceName}`) || sourceHost.endsWith('.eg') || sourceHost.includes('arab');
+          const arabicSignal = looksArabicText(`${contentText} ${sourceName}`);
           if (scope === 'local') {
-            if (!looksArabicText(contentText)) return null;
-            if (!matchesCategoryKeyword(category, contentText)) return null;
+            if (!arabicSignal && !localSignal) return null;
           }
           if (scope === 'global') {
             // Keep the global feeds primarily English to reduce mixing and speed screening.
-            if (looksArabicText(contentText)) return null;
+            if (arabicSignal) return null;
           }
           return normalizedAutoItem(
             {
@@ -861,9 +915,15 @@ async function fetchCategoryFromRss(category, scope = 'global') {
             'rss'
           );
         })
-        .filter(Boolean)
-        .filter((item) => item.verified)
-        .slice(0, scope === 'local' ? 10 : 8);
+        .filter(Boolean);
+
+      const verifiedOnly = mapped.filter((item) => item.verified);
+      let parsed = verifiedOnly;
+      if (scope === 'local' && verifiedOnly.length < 3) {
+        const extras = mapped.filter((item) => !item.verified).slice(0, 3 - verifiedOnly.length);
+        parsed = [...verifiedOnly, ...extras];
+      }
+      parsed = parsed.slice(0, scope === 'local' ? 10 : 8);
 
       collected.push(...parsed);
       if (collected.length >= 24) break;
@@ -1329,6 +1389,11 @@ async function normalizeManualItem(raw) {
   let summary = String(raw?.summary || '').trim();
   let source = String(raw?.source || '').trim();
   let imageUrl = normalizeImageUrl(raw?.image_url || '');
+  const videoUrl = normalizeVideoUrl(raw?.video_url || '');
+  const pdfUrl = normalizePdfUrl(raw?.pdf_url || '');
+  const ctaUrl = normalizeHttpUrl(raw?.cta_url || '');
+  const ctaLabel = String(raw?.cta_label || '').trim().slice(0, 60);
+  const isFeatured = Boolean(raw?.is_featured);
   let publishedAt = String(raw?.published_at || '').trim() || new Date().toISOString();
   let extractedScope = '';
 
@@ -1381,6 +1446,11 @@ async function normalizeManualItem(raw) {
     source,
     source_url: sourceUrl,
     image_url: imageUrl,
+    video_url: videoUrl,
+    pdf_url: pdfUrl,
+    cta_url: ctaUrl,
+    cta_label: ctaLabel,
+    is_featured: isFeatured,
     published_at: publishedAt,
     created_at: new Date().toISOString(),
     origin: 'manual',
@@ -1524,13 +1594,63 @@ function withScopeSeedIfNeeded(items, category, scope, minCount = 3) {
   return out;
 }
 
+function isSeedItem(item) {
+  return String(item?.origin || '').toLowerCase() === 'seed';
+}
+
+function normalizeScopedCategoryItems(items, category, scope) {
+  return sortNewsItemsByFreshness(
+    (Array.isArray(items) ? items : [])
+      .map((item) => ({
+        ...item,
+        scope: normalizeScope(item.scope, category, item.title, item.summary, item.source_url)
+      }))
+      .filter((item) => item.scope === scope)
+  );
+}
+
+function buildScopedFallbackPool(news, scope, preferredCategories, targetCategory) {
+  const pool = [];
+  for (const donorCategory of preferredCategories) {
+    const donorItems = normalizeScopedCategoryItems(news?.[donorCategory], donorCategory, scope).filter(
+      (item) => !isSeedItem(item)
+    );
+    donorItems.forEach((item) => {
+      const text = `${item.title || ''} ${item.summary || ''}`;
+      if (scope === 'local' && !looksArabicText(text)) return;
+      if (scope === 'global' && looksArabicText(text)) return;
+      if (!matchesCategoryKeyword(targetCategory, text)) return;
+      pool.push(item);
+    });
+  }
+  return sortNewsItemsByFreshness(dedupeByKey(pool));
+}
+
+function withScopedFallback(news, category, scope, minCount = 3) {
+  const directScoped = normalizeScopedCategoryItems(news?.[category], category, scope);
+  const directReal = directScoped.filter((item) => !isSeedItem(item));
+
+  if (directReal.length >= minCount) {
+    return directReal.slice(0, 24);
+  }
+
+  const donorOrder = ['local', 'war', 'economy', 'tech', 'ai'];
+  const donorPool = buildScopedFallbackPool(news, scope, donorOrder, category);
+  const mergedReal = sortNewsItemsByFreshness(dedupeByKey([...directReal, ...donorPool]));
+
+  if (mergedReal.length >= minCount) {
+    return mergedReal.slice(0, 24);
+  }
+
+  return withScopeSeedIfNeeded(mergedReal, category, scope, minCount);
+}
+
 function buildNewsScopes(news) {
   const scoped = {};
   for (const category of AUTO_NEWS_CATEGORIES) {
-    const items = Array.isArray(news?.[category]) ? news[category] : [];
     scoped[category] = {
-      global: withScopeSeedIfNeeded(items, category, 'global', 3),
-      local: withScopeSeedIfNeeded(items, category, 'local', 3)
+      global: withScopedFallback(news, category, 'global', 3),
+      local: withScopedFallback(news, category, 'local', 3)
     };
   }
   return scoped;
@@ -1812,9 +1932,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pathname === '/api/news') {
-    const payload = await getMergedNews(false);
+    const forceParam = String(url.searchParams.get('force') || '').trim().toLowerCase();
+    const forceRefresh = forceParam === '1' || forceParam === 'true' || forceParam === 'yes';
+    const payload = await getMergedNews(forceRefresh);
     sendJson(res, 200, {
       ok: true,
+      api_signature: API_SIGNATURE,
       ...payload
     });
     return;
@@ -1823,6 +1946,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && pathname === '/api/health') {
     sendJson(res, 200, {
       ok: true,
+      api_signature: API_SIGNATURE,
       uptime_sec: Math.round(process.uptime()),
       cache_age_sec: cache.updatedAt ? Math.round((Date.now() - cache.updatedAt) / 1000) : null,
       has_gemini_key: Boolean(GEMINI_API_KEY),
@@ -2045,6 +2169,9 @@ function startServerWithPortFallback() {
       ensureDataStore();
       refreshAutoNews(true).catch(() => {});
       scheduleNextAutoRefresh();
+      setInterval(() => {
+        refreshAutoNews(true).catch(() => {});
+      }, Math.max(5 * 60 * 1000, CACHE_TTL_MS));
       console.log(`Server running on http://${HOST}:${targetPort}`);
       console.log(`Gemini model: ${GEMINI_MODEL}`);
       console.log(`Auto refresh schedule: ${parseAutoRefreshTimes().map((slot) => `${String(slot.hour).padStart(2, '0')}:${String(slot.minute).padStart(2, '0')}`).join(', ')}`);

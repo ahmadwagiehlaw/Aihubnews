@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>نشرة الأخبار الذكية - AI HUB</title>
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="النشرة الذكية">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./icon.png">
+    <title>النشرة الذكية - AI HUB</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -54,6 +60,20 @@
             border-bottom-color: var(--accent-gold-light);
             color: var(--accent-gold-light);
             background-color: rgba(217, 119, 6, 0.1);
+        }
+        .main-tab.main-tab-home {
+            background: linear-gradient(120deg, rgba(120, 53, 15, 0.35), rgba(180, 83, 9, 0.28));
+            border-bottom-color: rgba(251, 191, 36, 0.7);
+            color: #fcd34d !important;
+            box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.45);
+        }
+        .main-tab.main-tab-home.active {
+            background:
+                radial-gradient(circle at 12% 30%, rgba(254, 243, 199, 0.3), transparent 35%),
+                linear-gradient(120deg, rgba(120, 53, 15, 0.7), rgba(217, 119, 6, 0.75));
+            border-bottom-color: #fbbf24;
+            color: #fff7d6 !important;
+            box-shadow: inset 0 0 0 1px rgba(252, 211, 77, 0.9), 0 8px 18px rgba(180, 83, 9, 0.35);
         }
 
         /* Sub Tabs Styling */
@@ -128,8 +148,8 @@
         }
 
         @keyframes tickerScroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0); }
         }
 
         .aihub-sub-tab[data-tone="announcements"].active { background: #0891b2; border-color: #22d3ee; }
@@ -151,6 +171,87 @@
             border-color: #38bdf8;
             color: #ecfeff;
         }
+
+        .admin-stealth-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.55);
+            color: rgba(148, 163, 184, 0.75);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .admin-stealth-btn:hover {
+            color: #f8fafc;
+            border-color: rgba(251, 191, 36, 0.6);
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .mobile-main-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 8px 4px;
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 700;
+            border-top: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .mobile-main-tab i {
+            font-size: 14px;
+        }
+        .mobile-main-tab.active {
+            color: #fbbf24;
+            border-top-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.08);
+        }
+        .mobile-main-tab.mobile-main-home.active {
+            color: #fde68a;
+            background: linear-gradient(180deg, rgba(120, 53, 15, 0.42), rgba(245, 158, 11, 0.15));
+        }
+
+        .install-banner {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.96));
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.45);
+        }
+
+        @media (max-width: 767px) {
+            header .brand-wrap {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+            header .brand-logo-wrap {
+                height: 64px;
+            }
+            header .brand-title {
+                font-size: 28px;
+                line-height: 1.05;
+            }
+            header .brand-subtitle {
+                font-size: 12px;
+                line-height: 1.25;
+            }
+            header .header-tools {
+                padding: 8px 10px;
+                gap: 8px;
+                border-radius: 12px;
+            }
+            header .clock-chip {
+                font-size: 11px;
+                padding: 3px 8px;
+            }
+            main {
+                padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -161,46 +262,71 @@
         </div>
     </div>
 
+    <div id="install-banner" class="install-banner hidden fixed inset-x-3 z-[80] rounded-xl p-3 text-xs md:text-sm text-slate-200">
+        <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+                <p class="font-bold text-amber-300 mb-1">تثبيت التطبيق على الهاتف</p>
+                <p id="install-banner-text" class="text-slate-200 leading-relaxed">
+                    يمكن تثبيت التطبيق للوصول السريع مثل التطبيقات الأصلية.
+                </p>
+            </div>
+            <button id="install-banner-close" class="text-slate-300 hover:text-white text-sm" aria-label="إغلاق">
+                <i class="fas fa-xmark"></i>
+            </button>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+            <button id="install-now-btn" class="text-xs bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded-md">تثبيت الآن</button>
+            <button id="install-later-btn" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold px-3 py-1.5 rounded-md">لاحقًا</button>
+            <button id="install-never-btn" class="text-xs bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold px-3 py-1.5 rounded-md border border-slate-600">عدم الإظهار مرة أخرى</button>
+        </div>
+    </div>
+
     <!-- Header Section -->
     <header class="bg-slate-800 border-b-4 border-amber-600 sticky top-8 z-50 shadow-xl">
-        <div class="max-w-7xl mx-auto px-4 py-3">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                
-                <!-- Logo & Branding -->
-                <div class="flex items-center gap-4 w-full md:w-auto">
-                    <div class="h-24 md:h-28 flex-shrink-0 flex items-center justify-center">
-                        <!-- Updated Logo Path -->
-                        <img src="logo.png" alt="شعار قضاة الذكاء الاصطناعي" class="h-full w-auto max-w-[170px] object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.35)]" onerror="this.style.display='none';">
+        <div class="max-w-7xl mx-auto px-3 md:px-4 py-2 md:py-3">
+            <div class="flex items-center justify-between gap-3">
+                <div class="brand-wrap flex items-center gap-4 min-w-0">
+                    <div class="brand-logo-wrap h-24 md:h-32 flex-shrink-0 flex items-center justify-center">
+                        <img src="logo.png" alt="شعار قضاة الذكاء الاصطناعي" class="h-full w-auto max-w-none object-contain drop-shadow-[0_4px_8px_rgba(0,0,0,0.35)]" onerror="this.style.display='none';">
                     </div>
-                    <div class="flex-grow">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h1 class="text-xl md:text-2xl font-bold tracking-wide text-amber-500">نشرة الأخبار الذكية</h1>
-                        </div>
-                        <p class="text-xs md:text-sm text-slate-300 font-medium">برعاية: قضاة الذكاء الاصطناعي (AI HUB) - جروب لتبادل الخبرات</p>
+                    <div class="min-w-0">
+                        <h1 class="brand-title text-xl md:text-2xl font-bold tracking-wide text-amber-500">النشرة الذكية</h1>
+                        <p class="brand-subtitle text-xs md:text-sm text-slate-300 font-medium leading-snug">برعاية: قضاة الذكاء الاصطناعي (AI HUB) - جروب لتبادل الخبرات</p>
                     </div>
                 </div>
 
-                <!-- Clock & Status -->
-                <div class="text-sm text-slate-400 flex flex-row md:flex-col items-center md:items-end gap-2 bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-700">
-                    <div class="flex items-center gap-2 text-red-400 font-bold">
-                        <i class="fas fa-satellite-dish fa-spin-pulse text-xs"></i> <span>بث مباشر لحظي</span>
+                <div class="header-tools text-sm text-slate-400 flex items-center gap-2 bg-slate-900/50 px-3 py-2 rounded-lg border border-slate-700">
+                    <div class="hidden md:flex items-center gap-2 text-red-400 font-bold text-xs">
+                        <i class="fas fa-circle pulse-live text-[8px]"></i><span>بث مباشر</span>
                     </div>
-                    <div class="text-xs text-slate-400 font-mono" id="real-time-clock">1 مارس 2026 - 03:55 صباحاً</div>
-                    <button id="open-admin-panel" class="text-xs bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1 rounded-md transition-colors">
-                        دخول الأدمن
+                    <div class="clock-chip text-xs text-slate-300 font-mono bg-slate-950/60 border border-slate-700 rounded-full px-2 py-1 flex items-center gap-1">
+                        <i class="fas fa-clock text-[10px] text-amber-300"></i>
+                        <span id="real-time-clock">--:--</span>
+                    </div>
+                    <button id="open-admin-panel" class="admin-stealth-btn" aria-label="لوحة الأدمن" title="لوحة الأدمن">
+                        <i class="fas fa-user-shield text-[11px]"></i>
                     </button>
-                    <div class="flex items-center gap-1">
-                        <span class="text-[11px] text-slate-400">العرض:</span>
-                        <button id="view-cards-btn" class="view-mode-btn active">بطاقات</button>
-                        <button id="view-timeline-btn" class="view-mode-btn">Timeline</button>
-                    </div>
                 </div>
+            </div>
+
+            <div class="mt-2 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1">
+                    <span class="text-[11px] text-slate-400">العرض:</span>
+                    <button id="view-cards-btn" class="view-mode-btn active">بطاقات</button>
+                    <button id="view-timeline-btn" class="view-mode-btn">Timeline</button>
+                </div>
+                <button id="refresh-news-btn" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-md transition-colors flex items-center gap-1">
+                    <i class="fas fa-rotate"></i> تحديث
+                </button>
             </div>
         </div>
         
-        <!-- Main Navigation Tabs (Scrollable on mobile) -->
-        <nav class="max-w-7xl mx-auto flex overflow-x-auto hide-scroll bg-slate-900/80">
-            <button onclick="switchMainTab('arabic')" id="main-btn-arabic" class="main-tab active flex-1 py-3 px-4 min-w-[130px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-sky-300 hover:text-amber-300">
+        <!-- Main Navigation Tabs (Desktop/Tablet) -->
+        <nav class="max-w-7xl mx-auto hidden md:flex overflow-x-auto hide-scroll bg-slate-900/80">
+            <button onclick="switchMainTab('aihub')" id="main-btn-aihub" class="main-tab main-tab-home active flex-1 py-3 px-4 min-w-[160px] whitespace-nowrap font-extrabold text-sm md:text-base flex flex-col items-center gap-1">
+                <i class="fas fa-rocket text-lg"></i> AI HUB الرئيسية
+            </button>
+            <button onclick="switchMainTab('arabic')" id="main-btn-arabic" class="main-tab flex-1 py-3 px-4 min-w-[130px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-sky-300 hover:text-amber-300">
                 <i class="fas fa-language text-lg"></i> العربي والمحلي
             </button>
             <button onclick="switchMainTab('global')" id="main-btn-global" class="main-tab flex-1 py-3 px-4 min-w-[120px] whitespace-nowrap font-bold text-sm md:text-base flex flex-col items-center gap-1 text-slate-400 hover:text-amber-300">
@@ -215,8 +341,28 @@
         </nav>
     </header>
 
+    <nav class="md:hidden fixed bottom-0 inset-x-0 z-[70] bg-slate-950/95 border-t border-slate-700" style="padding-bottom: calc(env(safe-area-inset-bottom) + 6px);">
+        <div class="grid grid-cols-5">
+            <button onclick="switchMainTab('aihub')" id="m-main-btn-aihub" class="mobile-main-tab mobile-main-home active">
+                <i class="fas fa-rocket"></i><span>الرئيسية</span>
+            </button>
+            <button onclick="switchMainTab('arabic')" id="m-main-btn-arabic" class="mobile-main-tab">
+                <i class="fas fa-language"></i><span>العربي</span>
+            </button>
+            <button onclick="switchMainTab('global')" id="m-main-btn-global" class="mobile-main-tab">
+                <i class="fas fa-globe"></i><span>العالمي</span>
+            </button>
+            <button onclick="switchMainTab('legal')" id="m-main-btn-legal" class="mobile-main-tab">
+                <i class="fas fa-gavel"></i><span>القانون</span>
+            </button>
+            <button onclick="switchMainTab('techai')" id="m-main-btn-techai" class="mobile-main-tab">
+                <i class="fas fa-microchip"></i><span>تقنية</span>
+            </button>
+        </div>
+    </nav>
+
     <!-- Main Content Area -->
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-6 mb-10">
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-6 mb-24 md:mb-10">
         <!-- ========================================== -->
         <!-- 1. GEOPOLITICAL NEWS SECTION (Contains Sub-Tabs) -->
         <!-- ========================================== -->
@@ -463,7 +609,7 @@
                 <img src="logo.png" alt="AI HUB" class="h-12 w-12 object-contain" onerror="this.style.display='none';">
                 <h3 class="font-bold text-amber-500 text-lg">قضاة الذكاء الاصطناعي (AI HUB)</h3>
             </div>
-            <p class="text-slate-500 text-sm mb-2">نشرة الأخبار الذكية - تجميع وتحليل لحظي للأحداث العالمية والمحلية.</p>
+            <p class="text-slate-500 text-sm mb-2">النشرة الذكية - تجميع وتحليل لحظي للأحداث العالمية والمحلية.</p>
             <p class="text-xs text-slate-600">جميع البيانات واردة من وكالات الأنباء الموثوقة والمصادر الرسمية، مع إتاحة رابط المصدر الرئيسي لكل خبر.</p>
             <p class="text-sm text-amber-400 font-semibold mt-3">حقوق الملكية للتطبيق: مستشار: أحمد وجيه محمد - هيئة قضايا الدولة</p>
         </div>
@@ -499,8 +645,16 @@
                     <button id="admin-logout-btn" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1 rounded-md">تسجيل الخروج</button>
                 </div>
 
+                <div class="flex gap-2 mb-4 border-b border-slate-700 pb-3">
+                    <button id="admin-tab-news-btn" class="text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold px-3 py-2 rounded-md">إدارة الأخبار</button>
+                    <button id="admin-tab-home-btn" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold px-3 py-2 rounded-md">تحرير الرئيسية AI HUB</button>
+                </div>
+
+                <div id="admin-news-editor">
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                     <select id="admin-category" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                        <option value="aihub">AI HUB الرئيسية</option>
                         <option value="war">جيوسياسي</option>
                         <option value="local">مصر/محلي</option>
                         <option value="economy">الاقتصاد</option>
@@ -551,7 +705,11 @@
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <input id="admin-image-url" type="url" placeholder="رابط الصورة (اختياري)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
-                        <input id="admin-image-file" type="file" accept="image/*" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 file:mr-3 file:rounded file:border-0 file:bg-amber-600 file:px-3 file:py-1 file:text-white">
+                        <input id="admin-video-url" type="url" placeholder="رابط فيديو YouTube/Vimeo (اختياري)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input id="admin-image-file" type="file" accept="image/*,.gif" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 file:mr-3 file:rounded file:border-0 file:bg-amber-600 file:px-3 file:py-1 file:text-white">
+                        <p class="text-[11px] text-slate-400 self-center">يدعم JPG/PNG/GIF ورفع الصور مباشرة.</p>
                     </div>
                 </div>
 
@@ -566,6 +724,59 @@
                     <h4 class="text-sm font-bold text-slate-200 mb-2">آخر الأخبار المضافة يدويًا</h4>
                     <div id="admin-manual-news-list" class="space-y-2"></div>
                 </div>
+                </div>
+
+                <div id="admin-home-editor" class="hidden">
+                    <div class="bg-amber-900/20 border border-amber-700/50 rounded-xl p-4 mb-4">
+                        <h4 class="text-sm font-bold text-amber-300 mb-2">تحرير تبويب AI HUB الرئيسية</h4>
+                        <p class="text-xs text-slate-300">مساحة مميزة لمحتوى الجروب: شروحات، أدوات، فيديوهات، ملفات PDF وروابط مباشرة.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <select id="admin-home-section" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                            <option value="announcements">إعلانات الجروب</option>
+                            <option value="tools">أدوات وملفات</option>
+                            <option value="community">مجتمع وفعاليات</option>
+                            <option value="tutorials">الشروحات</option>
+                        </select>
+                        <label class="flex items-center gap-2 text-xs text-slate-300 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2">
+                            <input id="admin-home-featured" type="checkbox" class="accent-amber-500">
+                            عنصر مميز في الصفحة الرئيسية
+                        </label>
+                    </div>
+
+                    <div class="space-y-3">
+                        <input id="admin-home-title" type="text" placeholder="عنوان البطاقة الرئيسية" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                        <textarea id="admin-home-summary" rows="4" placeholder="وصف مختصر/شرح" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"></textarea>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input id="admin-home-source" type="text" placeholder="اسم المصدر (مثال: AI HUB)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                            <input id="admin-home-source-url" type="url" placeholder="رابط المصدر/المرجع الأساسي" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input id="admin-home-image-url" type="url" placeholder="رابط صورة (اختياري)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                            <input id="admin-home-video-url" type="url" placeholder="رابط فيديو YouTube للتشغيل" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input id="admin-home-pdf-url" type="url" placeholder="رابط PDF (اختياري)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                            <input id="admin-home-cta-url" type="url" placeholder="رابط زر إضافي (اختياري)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input id="admin-home-cta-label" type="text" placeholder="نص الزر الإضافي (مثال: فتح الأداة)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                            <input id="admin-home-image-file" type="file" accept="image/*,.gif" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 file:mr-3 file:rounded file:border-0 file:bg-amber-600 file:px-3 file:py-1 file:text-white">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-3 mt-4">
+                        <button id="admin-home-add-btn" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-lg text-sm">إضافة عنصر للرئيسية</button>
+                        <button id="admin-home-refresh-btn" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold px-4 py-2 rounded-lg text-sm">تحديث قائمة الرئيسية</button>
+                    </div>
+                    <p id="admin-home-status" class="text-xs text-slate-300 mt-3"></p>
+
+                    <div class="mt-4 border-t border-slate-700 pt-4">
+                        <h4 class="text-sm font-bold text-slate-200 mb-2">عناصر تبويب الرئيسية AI HUB</h4>
+                        <div id="admin-home-list" class="space-y-2"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -573,19 +784,28 @@
     <!-- JavaScript for Interactions -->
     <script>
         const PUBLIC_POLL_MS = 5 * 60 * 1000;
+        const REQUIRED_API_SIGNATURE = 'aihub-news-v4';
         const SAVED_API_BASE = localStorage.getItem('aihub_api_base') || '';
         const SAVED_VIEW_MODE = localStorage.getItem('aihub_view_mode') || 'cards';
+        const INSTALL_BANNER_DISMISS_KEY = 'aihub_install_prompt_dismissed';
+        const API_REQUEST_TIMEOUT_MS = 900;
+        const API_RETRY_COOLDOWN_MS = 30000;
+        const API_BLOCK_TTL_MS = 5 * 60 * 1000;
         const APP_STATE = {
-            adminToken: localStorage.getItem('aihub_admin_token') || '',
+            adminToken: '',
             latestPayload: null,
             pagination: {},
             listCache: {},
             viewMode: SAVED_VIEW_MODE === 'timeline' ? 'timeline' : 'cards',
             apiBase: SAVED_API_BASE,
             apiReady: false,
-            discoveringApi: false
+            discoveringApi: false,
+            deferredInstallPrompt: null,
+            installBannerShown: false,
+            apiBlockedBases: {},
+            lastApiFailureAt: 0
         };
-        const API_PORT_CANDIDATES = ['3000', '3130', '3131', '3132', '3133', '3134', '3135', '8080', '5000'];
+        const API_PORT_CANDIDATES = ['3000', '3130'];
 
         const CATEGORY_META = {
             war: { label: 'جيوسياسي', icon: 'fa-earth-africa', tone: 'red' },
@@ -594,6 +814,7 @@
             legal: { label: 'القانون', icon: 'fa-gavel', tone: 'amber' },
             ai: { label: 'الذكاء الاصطناعي', icon: 'fa-brain', tone: 'violet' },
             tech: { label: 'التقنية', icon: 'fa-microchip', tone: 'cyan' },
+            aihub: { label: 'AI HUB', icon: 'fa-rocket', tone: 'sky' },
             arabic: { label: 'العربي والمحلي', icon: 'fa-language', tone: 'sky' },
             global: { label: 'العالمي', icon: 'fa-globe', tone: 'amber' },
             techai: { label: 'تقنية + AI', icon: 'fa-microchip', tone: 'cyan' }
@@ -609,6 +830,60 @@
             legal_manual: 'dynamic-legal-manual-list',
             techai_ai: 'dynamic-techai-ai-list',
             techai_tech: 'dynamic-techai-tech-list'
+        };
+
+        const STATIC_LOCAL_FALLBACK = {
+            local: [
+                {
+                    title: 'متابعة محلية: مصر والشأن الداخلي',
+                    summary: 'تجميع موجز للأخبار المحلية المصرية من مصادر متعددة لحين عودة التغذية المباشرة.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'local'
+                },
+                {
+                    title: 'ملف الخدمات والمؤسسات في مصر',
+                    summary: 'أبرز تحديثات الخدمات العامة والقرارات التنظيمية ذات التأثير على الجمهور.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'local'
+                },
+                {
+                    title: 'رصد يومي للتطورات المحلية',
+                    summary: 'موجز محلي سريع قابل للتحديث المستمر على مدار اليوم.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'local'
+                }
+            ],
+            war: [
+                {
+                    title: 'متابعة جيوسياسية عربية',
+                    summary: 'تغطية مختصرة لأهم التطورات الجيوسياسية المؤثرة على المنطقة العربية.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'war'
+                }
+            ],
+            economy: [
+                {
+                    title: 'متابعة الاقتصاد الكلي محليًا',
+                    summary: 'ملخص يومي للفائدة والتضخم وسوق الصرف والأخبار الاقتصادية المؤثرة.',
+                    source: 'AI HUB',
+                    source_url: 'https://news.google.com/',
+                    published_at: '',
+                    scope: 'local',
+                    category: 'economy'
+                }
+            ]
         };
 
         function escapeHtml(value) {
@@ -678,7 +953,11 @@
             const host = window.location.hostname || '127.0.0.1';
             const activePort = String(window.location.port || '').trim();
             const ports = [...new Set([activePort, ...API_PORT_CANDIDATES].filter(Boolean))];
-            const hosts = [...new Set([host, '127.0.0.1', 'localhost'])];
+            const hosts = [...new Set(
+                ['127.0.0.1', 'localhost'].includes(host)
+                    ? [host, host === '127.0.0.1' ? 'localhost' : '127.0.0.1']
+                    : [host]
+            )];
 
             const out = [''];
             hosts.forEach((h) => {
@@ -689,6 +968,17 @@
             return [...new Set(out.map((base) => normalizeApiBase(base) || ''))];
         }
 
+        function cleanupBlockedApiBases() {
+            const blocked = APP_STATE.apiBlockedBases || {};
+            const now = Date.now();
+            Object.keys(blocked).forEach((base) => {
+                const ts = Number(blocked[base]) || 0;
+                if (!ts || (now - ts) > API_BLOCK_TTL_MS) {
+                    delete blocked[base];
+                }
+            });
+        }
+
         function buildApiUrl(path, base = '') {
             const safePath = String(path || '').startsWith('/') ? String(path || '') : `/${String(path || '')}`;
             if (!base) return safePath;
@@ -696,12 +986,28 @@
         }
 
         function getOrderedApiBases() {
+            cleanupBlockedApiBases();
             const known = buildAutoApiCandidates();
             if (APP_STATE.apiBase && !known.includes(APP_STATE.apiBase)) known.unshift(APP_STATE.apiBase);
-            if (APP_STATE.apiBase || APP_STATE.apiBase === '') {
-                return [APP_STATE.apiBase, ...known.filter((x) => x !== APP_STATE.apiBase)];
+            const blocked = APP_STATE.apiBlockedBases || {};
+            const filtered = known.filter((base) => !blocked[base]);
+            if (APP_STATE.apiBase && !blocked[APP_STATE.apiBase]) {
+                return [APP_STATE.apiBase, ...filtered.filter((x) => x !== APP_STATE.apiBase && !blocked[x])];
             }
-            return known;
+            if (APP_STATE.apiBase === '' && !blocked['']) {
+                return ['', ...filtered.filter((x) => x !== '' && !blocked[x])];
+            }
+            return filtered;
+        }
+
+        async function fetchWithTimeout(url, options = {}, timeoutMs = API_REQUEST_TIMEOUT_MS) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), Math.max(700, Number(timeoutMs) || API_REQUEST_TIMEOUT_MS));
+            try {
+                return await fetch(url, { ...options, signal: controller.signal });
+            } finally {
+                clearTimeout(timer);
+            }
         }
 
         async function discoverApiBase() {
@@ -712,10 +1018,14 @@
                 for (const base of bases) {
                     const healthUrl = buildApiUrl('/api/health', base);
                     try {
-                        const response = await fetch(healthUrl, { method: 'GET', headers: { Accept: 'application/json' } });
-                        if (!response.ok) continue;
+                        const response = await fetchWithTimeout(healthUrl, { method: 'GET', headers: { Accept: 'application/json' } }, API_REQUEST_TIMEOUT_MS);
+                        if (!response.ok) {
+                            APP_STATE.apiBlockedBases[base] = Date.now();
+                            continue;
+                        }
                         const payload = await response.json().catch(() => null);
                         if (!payload || payload.ok !== true) continue;
+                        if (payload.api_signature !== REQUIRED_API_SIGNATURE) continue;
                         setApiBase(base, true);
                         APP_STATE.apiReady = true;
                         setApiStatus(`تم الاتصال بخادم الأخبار: ${base || 'نفس رابط الصفحة'}`, 'ok');
@@ -723,10 +1033,11 @@
                         if (input) input.value = APP_STATE.apiBase || '';
                         return true;
                     } catch (_) {
-                        // Try next base
+                        APP_STATE.apiBlockedBases[base] = Date.now();
                     }
                 }
                 APP_STATE.apiReady = false;
+                APP_STATE.lastApiFailureAt = Date.now();
                 setApiStatus('تعذر اكتشاف خادم API. شغّل server.js ثم أدخل الرابط يدويًا.', 'error');
                 return false;
             } finally {
@@ -736,21 +1047,34 @@
 
         async function fetchApi(path, options = {}) {
             if (!APP_STATE.apiReady) {
+                if (APP_STATE.lastApiFailureAt && (Date.now() - APP_STATE.lastApiFailureAt < API_RETRY_COOLDOWN_MS)) {
+                    throw new Error('API unavailable (cooldown)');
+                }
                 await discoverApiBase();
+                if (!APP_STATE.apiReady && APP_STATE.lastApiFailureAt && (Date.now() - APP_STATE.lastApiFailureAt < API_RETRY_COOLDOWN_MS)) {
+                    throw new Error('API unavailable (cooldown)');
+                }
             }
             const bases = getOrderedApiBases();
+            if (!bases.length) {
+                APP_STATE.apiReady = false;
+                APP_STATE.lastApiFailureAt = Date.now();
+                throw new Error('No API base candidates available');
+            }
             let lastError = null;
 
             for (const base of bases) {
                 const url = buildApiUrl(path, base);
                 try {
-                    const response = await fetch(url, options);
+                    const response = await fetchWithTimeout(url, options, API_REQUEST_TIMEOUT_MS);
                     if (response.ok || [400, 401, 403].includes(response.status)) {
                         setApiBase(base, true);
                         APP_STATE.apiReady = true;
+                        APP_STATE.lastApiFailureAt = 0;
                         return response;
                     }
                     if ([404, 405, 502, 503, 504].includes(response.status)) {
+                        APP_STATE.apiBlockedBases[base] = Date.now();
                         lastError = new Error(`HTTP ${response.status}`);
                         continue;
                     }
@@ -758,20 +1082,159 @@
                     APP_STATE.apiReady = true;
                     return response;
                 } catch (error) {
+                    APP_STATE.apiBlockedBases[base] = Date.now();
                     lastError = error;
                 }
             }
             APP_STATE.apiReady = false;
+            APP_STATE.lastApiFailureAt = Date.now();
             setApiStatus('فشل الاتصال بـ API. تأكد أن server.js يعمل ثم أعد المحاولة.', 'error');
             throw (lastError || new Error('تعذر الوصول إلى واجهة الـ API'));
         }
 
+        function isStandaloneMode() {
+            const mq = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+            return Boolean(mq || window.navigator.standalone === true);
+        }
+
+        function isIOSDevice() {
+            const ua = String(window.navigator.userAgent || '').toLowerCase();
+            return /iphone|ipad|ipod/.test(ua);
+        }
+
+        function shouldShowInstallBanner() {
+            if (isStandaloneMode()) return false;
+            if (localStorage.getItem(INSTALL_BANNER_DISMISS_KEY) === '1') return false;
+            return true;
+        }
+
+        function showInstallBanner(mode = 'generic') {
+            if (!shouldShowInstallBanner()) return;
+            const banner = document.getElementById('install-banner');
+            const text = document.getElementById('install-banner-text');
+            const installBtn = document.getElementById('install-now-btn');
+            if (!banner || !text || !installBtn) return;
+
+            const mobile = window.matchMedia('(max-width: 767px)').matches;
+            banner.style.bottom = mobile ? '74px' : '12px';
+
+            if (mode === 'ios') {
+                text.textContent = 'على iPhone: اضغط زر المشاركة في Safari ثم اختر "Add to Home Screen".';
+                installBtn.textContent = 'فهمت الخطوات';
+            } else {
+                text.textContent = 'يمكن تثبيت التطبيق للوصول السريع مثل التطبيقات الأصلية.';
+                installBtn.textContent = 'تثبيت الآن';
+            }
+
+            banner.classList.remove('hidden');
+            APP_STATE.installBannerShown = true;
+        }
+
+        function hideInstallBanner() {
+            const banner = document.getElementById('install-banner');
+            if (banner) banner.classList.add('hidden');
+            APP_STATE.installBannerShown = false;
+        }
+
+        function initInstallExperience() {
+            const installBtn = document.getElementById('install-now-btn');
+            const laterBtn = document.getElementById('install-later-btn');
+            const neverBtn = document.getElementById('install-never-btn');
+            const closeBtn = document.getElementById('install-banner-close');
+
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (APP_STATE.deferredInstallPrompt) {
+                        APP_STATE.deferredInstallPrompt.prompt();
+                        try {
+                            await APP_STATE.deferredInstallPrompt.userChoice;
+                        } catch (_) {}
+                        APP_STATE.deferredInstallPrompt = null;
+                        hideInstallBanner();
+                        return;
+                    }
+                    hideInstallBanner();
+                });
+            }
+            if (laterBtn) laterBtn.addEventListener('click', hideInstallBanner);
+            if (closeBtn) closeBtn.addEventListener('click', hideInstallBanner);
+            if (neverBtn) {
+                neverBtn.addEventListener('click', () => {
+                    localStorage.setItem(INSTALL_BANNER_DISMISS_KEY, '1');
+                    hideInstallBanner();
+                });
+            }
+
+            window.addEventListener('beforeinstallprompt', (event) => {
+                event.preventDefault();
+                APP_STATE.deferredInstallPrompt = event;
+                showInstallBanner('android');
+            });
+
+            if (shouldShowInstallBanner()) {
+                if (isIOSDevice()) {
+                    setTimeout(() => showInstallBanner('ios'), 1400);
+                } else {
+                    setTimeout(() => showInstallBanner('generic'), 2000);
+                }
+            }
+        }
+
+        async function registerServiceWorker() {
+            const canRegister = 'serviceWorker' in navigator;
+            const secureContext = window.location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
+            if (!canRegister || !secureContext) return;
+            try {
+                await navigator.serviceWorker.register('./sw.js');
+            } catch (_) {
+                // Keep silent to avoid disturbing users.
+            }
+        }
+
+        function normalizeVideoUrl(url) {
+            const raw = String(url || '').trim();
+            if (!raw) return '';
+            try {
+                const parsed = new URL(raw, window.location.href);
+                if (!/^https?:$/i.test(parsed.protocol)) return '';
+                return parsed.toString();
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function youtubeEmbedUrl(url) {
+            const videoUrl = normalizeVideoUrl(url);
+            if (!videoUrl) return '';
+            try {
+                const u = new URL(videoUrl);
+                const host = u.hostname.toLowerCase();
+                if (host === 'youtu.be') {
+                    const id = u.pathname.replace(/\//g, '').trim();
+                    return id ? `https://www.youtube.com/embed/${encodeURIComponent(id)}` : '';
+                }
+                if (host.includes('youtube.com')) {
+                    const id = u.searchParams.get('v');
+                    if (id) return `https://www.youtube.com/embed/${encodeURIComponent(id)}`;
+                    const parts = u.pathname.split('/').filter(Boolean);
+                    if (parts[0] === 'shorts' && parts[1]) {
+                        return `https://www.youtube.com/embed/${encodeURIComponent(parts[1])}`;
+                    }
+                }
+            } catch (_) {
+                return '';
+            }
+            return '';
+        }
+
         function updateClock() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const dateString = now.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+            const timeString = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            const dateString = now.toLocaleDateString('ar-EG', { year: '2-digit', month: '2-digit', day: '2-digit' });
             const clock = document.getElementById('real-time-clock');
-            if (clock) clock.innerHTML = `${dateString} - ${timeString}`;
+            if (clock) {
+                clock.textContent = `${dateString} • ${timeString}`;
+            }
         }
 
         function switchMainTab(tabName) {
@@ -793,9 +1256,15 @@
             selectedSection.classList.add('block');
 
             const activeBtn = document.getElementById(`main-btn-${tabName}`);
-            if (!activeBtn) return;
-            activeBtn.classList.add('active');
-            activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+
+            const mobileButtons = document.querySelectorAll('.mobile-main-tab');
+            mobileButtons.forEach((button) => button.classList.remove('active'));
+            const mobileActive = document.getElementById(`m-main-btn-${tabName}`);
+            if (mobileActive) mobileActive.classList.add('active');
         }
 
         function switchSubTab(subTabId) {
@@ -939,6 +1408,25 @@
             return `<a href="${escapeAttr(item.source_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-amber-600 hover:bg-amber-500 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-link"></i> مصدر الخبر</a>`;
         }
 
+        function videoButton(item) {
+            const videoUrl = normalizeVideoUrl(item?.video_url || '');
+            if (!videoUrl) return '';
+            return `<a href="${escapeAttr(videoUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-play"></i> مشاهدة الفيديو</a>`;
+        }
+
+        function pdfButton(item) {
+            const pdfUrl = normalizeVideoUrl(item?.pdf_url || '');
+            if (!pdfUrl) return '';
+            return `<a href="${escapeAttr(pdfUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-file-pdf"></i> ملف PDF</a>`;
+        }
+
+        function actionButton(item) {
+            const ctaUrl = normalizeVideoUrl(item?.cta_url || '');
+            if (!ctaUrl) return '';
+            const label = String(item?.cta_label || '').trim() || 'فتح الرابط';
+            return `<a href="${escapeAttr(ctaUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded-md transition-colors"><i class="fas fa-arrow-up-right-from-square"></i> ${escapeHtml(label)}</a>`;
+        }
+
         function applyViewModeButtons() {
             const cardsBtn = document.getElementById('view-cards-btn');
             const timelineBtn = document.getElementById('view-timeline-btn');
@@ -975,18 +1463,39 @@
             const image = item?.image_url
                 ? `<div class="h-32 w-full overflow-hidden rounded-lg mb-3 bg-slate-900"><img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.title || 'news')}" class="w-full h-full object-cover" onerror="this.style.display='none';"></div>`
                 : '';
+            const youtubeEmbed = youtubeEmbedUrl(item?.video_url || '');
+            const videoEmbed = youtubeEmbed
+                ? `<div class="mb-3 overflow-hidden rounded-lg border border-slate-700 bg-black">
+                        <iframe src="${escapeAttr(youtubeEmbed)}" title="youtube video" class="w-full aspect-video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                   </div>`
+                : '';
+
+            const isAihub = String(item?.category || '').toLowerCase() === 'aihub';
+            const aihubClass = isAihub ? 'bg-gradient-to-br from-slate-800/95 to-slate-900/95 border-amber-500/50 ring-1 ring-amber-300/20' : 'bg-slate-800/95';
+            const featuredChip = item?.is_featured
+                ? '<span class="text-[10px] bg-amber-600 text-white px-2 py-1 rounded">مميز</span>'
+                : '';
 
             return `
-                <article class="bg-slate-800/95 rounded-xl border ${borderTone} p-4 shadow">
+                <article class="${aihubClass} rounded-xl border ${borderTone} p-4 shadow">
+                    ${videoEmbed}
                     ${image}
                     <div class="flex items-start justify-between gap-2 mb-2">
                         <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300">${escapeHtml(item.source || 'مصدر غير متاح')}</span>
-                        <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                        <div class="flex items-center gap-2">
+                            ${featuredChip}
+                            <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                        </div>
                     </div>
                     <h4 class="text-sm font-bold text-slate-100 mb-2">${escapeHtml(item.title || 'بدون عنوان')}</h4>
                     <p class="text-xs text-slate-300 leading-relaxed mb-3">${escapeHtml(item.summary || '')}</p>
-                    <div class="flex items-center justify-between gap-2">
-                        ${sourceButton(item)}
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            ${sourceButton(item)}
+                            ${videoButton(item)}
+                            ${pdfButton(item)}
+                            ${actionButton(item)}
+                        </div>
                         ${item.origin === 'manual' ? '<span class="text-[10px] text-cyan-300 border border-cyan-700/60 px-2 py-1 rounded">مضاف يدويًا</span>' : ''}
                     </div>
                 </article>
@@ -1006,20 +1515,40 @@
             const image = item?.image_url
                 ? `<div class="h-28 md:h-32 w-full overflow-hidden rounded-lg mb-3 bg-slate-900"><img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(item.title || 'news')}" class="w-full h-full object-cover" onerror="this.style.display='none';"></div>`
                 : '';
+            const youtubeEmbed = youtubeEmbedUrl(item?.video_url || '');
+            const videoEmbed = youtubeEmbed
+                ? `<div class="mb-3 overflow-hidden rounded-lg border border-slate-700 bg-black">
+                        <iframe src="${escapeAttr(youtubeEmbed)}" title="youtube video" class="w-full aspect-video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                   </div>`
+                : '';
+
+            const isAihub = String(item?.category || '').toLowerCase() === 'aihub';
+            const featuredChip = item?.is_featured
+                ? '<span class="text-[10px] bg-amber-600 text-white px-2 py-1 rounded">مميز</span>'
+                : '';
 
             return `
                 <article class="relative pr-5 border-r-2 ${toneClass}">
                     <div class="absolute -right-[7px] top-3 w-3 h-3 rounded-full bg-current"></div>
-                    <div class="bg-slate-800/95 rounded-xl border border-slate-700 p-4 shadow mb-3">
+                    <div class="${isAihub ? 'bg-gradient-to-br from-slate-800/95 to-slate-900/95 border-amber-500/50 ring-1 ring-amber-300/20' : 'bg-slate-800/95'} rounded-xl border border-slate-700 p-4 shadow mb-3">
+                        ${videoEmbed}
                         ${image}
                         <div class="flex items-center justify-between gap-2 mb-2">
                             <span class="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-300">${escapeHtml(item.source || 'مصدر غير متاح')}</span>
-                            <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                            <div class="flex items-center gap-2">
+                                ${featuredChip}
+                                <span class="text-[10px] text-slate-400">${escapeHtml(formatDateTime(item.published_at))}</span>
+                            </div>
                         </div>
                         <h4 class="text-sm font-bold text-slate-100 mb-2">${escapeHtml(item.title || 'بدون عنوان')}</h4>
                         <p class="text-xs text-slate-300 leading-relaxed mb-3">${escapeHtml(item.summary || '')}</p>
-                        <div class="flex items-center justify-between gap-2">
-                            ${sourceButton(item)}
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                ${sourceButton(item)}
+                                ${videoButton(item)}
+                                ${pdfButton(item)}
+                                ${actionButton(item)}
+                            </div>
                             ${item.origin === 'manual' ? '<span class="text-[10px] text-cyan-300 border border-cyan-700/60 px-2 py-1 rounded">مضاف يدويًا</span>' : ''}
                         </div>
                     </div>
@@ -1152,6 +1681,253 @@
             track.style.animationDuration = `${durationSec}s`;
         }
 
+        function stripHtmlLite(value) {
+            return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        function excerptLite(value, maxLen = 220) {
+            const clean = stripHtmlLite(value);
+            if (clean.length <= maxLen) return clean;
+            return `${clean.slice(0, maxLen - 1).trim()}…`;
+        }
+
+        function looksArabic(value) {
+            return /[\u0600-\u06FF]/.test(String(value || ''));
+        }
+
+        function sourceDomainLite(urlValue) {
+            try {
+                return new URL(urlValue).hostname.replace(/^www\./, '');
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function parseRssItemsLite(xmlText) {
+            const xml = String(xmlText || '');
+            const blocks = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)].map((m) => m[0]);
+            const extract = (block, tag) => {
+                const match = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+                return match ? match[1] : '';
+            };
+            const extractLink = (block) => {
+                const hrefMatch = block.match(/<link[^>]*href=["']([^"']+)["'][^>]*>/i);
+                if (hrefMatch) return hrefMatch[1];
+                const textMatch = block.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
+                return textMatch ? textMatch[1] : '';
+            };
+            return blocks.map((block) => ({
+                title: stripHtmlLite(extract(block, 'title')),
+                description: stripHtmlLite(extract(block, 'description') || extract(block, 'summary')),
+                link: stripHtmlLite(extractLink(block)),
+                pubDate: stripHtmlLite(extract(block, 'pubDate') || extract(block, 'updated') || extract(block, 'published'))
+            }));
+        }
+
+        async function fetchRssWithCorsFallback(feedUrl) {
+            const urls = [feedUrl, `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`];
+            for (const candidate of urls) {
+                try {
+                    const response = await fetchWithTimeout(candidate, { method: 'GET' }, 4500);
+                    if (!response.ok) continue;
+                    const text = await response.text();
+                    if (/<item\b|<entry\b/i.test(text)) return text;
+                } catch (_) {}
+            }
+            return '';
+        }
+
+        async function fetchRssViaJson(feedUrl) {
+            const endpoint = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`;
+            try {
+                const response = await fetchWithTimeout(endpoint, { method: 'GET' }, 4500);
+                if (!response.ok) return [];
+                const payload = await response.json();
+                if (payload?.status !== 'ok' || !Array.isArray(payload?.items)) return [];
+                return payload.items.map((item) => ({
+                    title: String(item?.title || '').trim(),
+                    description: stripHtmlLite(item?.description || item?.content || item?.title || ''),
+                    link: String(item?.link || item?.guid || '').trim(),
+                    pubDate: String(item?.pubDate || item?.published || '').trim()
+                }));
+            } catch (_) {
+                return [];
+            }
+        }
+
+        async function fetchEmergencyFeedItems(feedUrl) {
+            const jsonItems = await fetchRssViaJson(feedUrl);
+            if (jsonItems.length) return jsonItems;
+            const xml = await fetchRssWithCorsFallback(feedUrl);
+            return parseRssItemsLite(xml);
+        }
+
+        function mapEmergencyItems(items, category, scope) {
+            return (Array.isArray(items) ? items : [])
+                .map((row, idx) => {
+                    const sourceUrl = String(row.link || row.source_url || 'https://news.google.com/').trim();
+                    const title = String(row.title || '').trim();
+                    const summary = excerptLite(row.description || row.summary || row.title || '', 240);
+                    if (!title || !sourceUrl || summary.length < 20) return null;
+                    return {
+                        id: `em_${category}_${scope}_${Date.now()}_${idx}`,
+                        category,
+                        scope,
+                        title,
+                        summary,
+                        source: String(row.source || sourceDomainLite(sourceUrl) || 'news'),
+                        source_url: sourceUrl,
+                        image_url: '',
+                        published_at: row.pubDate || '',
+                        origin: 'rss',
+                        verified: true
+                    };
+                })
+                .filter(Boolean);
+        }
+
+        async function buildEmergencyFallbackPayload() {
+            const feeds = {
+                ar_local: 'https://news.google.com/rss/search?q=أخبار مصر&hl=ar&gl=EG&ceid=EG:ar',
+                ar_war: 'https://news.google.com/rss/search?q=الأخبار الجيوسياسية&hl=ar&gl=EG&ceid=EG:ar',
+                ar_economy: 'https://news.google.com/rss/search?q=اقتصاد مصر أسعار الفائدة&hl=ar&gl=EG&ceid=EG:ar',
+                en_local: 'https://news.google.com/rss/search?q=middle east regional news&hl=en&gl=US&ceid=US:en'
+            };
+
+            const [arLocalRaw, arWarRaw, arEconomyRaw, enLocalRaw] = await Promise.all([
+                fetchEmergencyFeedItems(feeds.ar_local),
+                fetchEmergencyFeedItems(feeds.ar_war),
+                fetchEmergencyFeedItems(feeds.ar_economy),
+                fetchEmergencyFeedItems(feeds.en_local)
+            ]);
+
+            const arLocalItems = mapEmergencyItems((Array.isArray(arLocalRaw) ? arLocalRaw : []).filter((x) => looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'local', 'local');
+            const arWarItems = mapEmergencyItems((Array.isArray(arWarRaw) ? arWarRaw : []).filter((x) => looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'war', 'local');
+            const arEconomyItems = mapEmergencyItems((Array.isArray(arEconomyRaw) ? arEconomyRaw : []).filter((x) => looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'economy', 'local');
+            const enLocalItems = mapEmergencyItems((Array.isArray(enLocalRaw) ? enLocalRaw : []).filter((x) => !looksArabic(`${x.title} ${x.description}`)).slice(0, 8), 'local', 'global');
+
+            if (!arLocalItems.length && !arWarItems.length && !arEconomyItems.length && !enLocalItems.length) {
+                const staticLocal = mapEmergencyItems(STATIC_LOCAL_FALLBACK.local, 'local', 'local');
+                const staticWar = mapEmergencyItems(STATIC_LOCAL_FALLBACK.war, 'war', 'local');
+                const staticEconomy = mapEmergencyItems(STATIC_LOCAL_FALLBACK.economy, 'economy', 'local');
+                if (!staticLocal.length && !staticWar.length && !staticEconomy.length) return null;
+                return {
+                    news: APP_STATE.latestPayload?.news || { war: [], local: [], economy: [], legal: [], ai: [], tech: [], aihub: [] },
+                    news_scopes: {
+                        war: { global: [], local: staticWar },
+                        local: { global: [], local: staticLocal },
+                        economy: { global: [], local: staticEconomy },
+                        ai: { global: [], local: [] },
+                        tech: { global: [], local: [] }
+                    },
+                    aihub_sections: APP_STATE.latestPayload?.aihub_sections || { announcements: [], tools: [], community: [], tutorials: [] },
+                    source: 'client-static-local-fallback'
+                };
+            }
+
+            const fallbackNews = APP_STATE.latestPayload?.news || { war: [], local: [], economy: [], legal: [], ai: [], tech: [], aihub: [] };
+            const fallbackScopes = APP_STATE.latestPayload?.news_scopes || {};
+
+            return {
+                news: fallbackNews,
+                news_scopes: {
+                    war: {
+                        global: Array.isArray(fallbackScopes?.war?.global) ? fallbackScopes.war.global : [],
+                        local: arWarItems.length ? arWarItems : (Array.isArray(fallbackScopes?.war?.local) ? fallbackScopes.war.local : [])
+                    },
+                    local: {
+                        global: enLocalItems.length ? enLocalItems : (Array.isArray(fallbackScopes?.local?.global) ? fallbackScopes.local.global : []),
+                        local: arLocalItems.length ? arLocalItems : (Array.isArray(fallbackScopes?.local?.local) ? fallbackScopes.local.local : [])
+                    },
+                    economy: {
+                        global: Array.isArray(fallbackScopes?.economy?.global) ? fallbackScopes.economy.global : [],
+                        local: arEconomyItems.length ? arEconomyItems : (Array.isArray(fallbackScopes?.economy?.local) ? fallbackScopes.economy.local : [])
+                    },
+                    ai: fallbackScopes?.ai || { global: [], local: [] },
+                    tech: fallbackScopes?.tech || { global: [], local: [] }
+                },
+                aihub_sections: APP_STATE.latestPayload?.aihub_sections || { announcements: [], tools: [], community: [], tutorials: [] },
+                source: 'client-emergency-rss'
+            };
+        }
+
+        function mergeScopedItems(primaryItems, fallbackItems, minCount = 3) {
+            const out = [];
+            const seen = new Set();
+            const pushItem = (item) => {
+                if (!item) return;
+                const key = `${String(item.source_url || '').trim()}|${String(item.title || '').trim()}`.toLowerCase();
+                if (!key || seen.has(key)) return;
+                seen.add(key);
+                out.push(item);
+            };
+            (Array.isArray(primaryItems) ? primaryItems : []).forEach(pushItem);
+            if (out.length < minCount) {
+                (Array.isArray(fallbackItems) ? fallbackItems : []).forEach(pushItem);
+            }
+            return out;
+        }
+
+        function ensureArabicScopeCoverage(payload, emergencyPayload) {
+            if (!payload || !emergencyPayload) return payload;
+            const p = payload.news_scopes || {};
+            const e = emergencyPayload.news_scopes || {};
+            const merged = {
+                ...payload,
+                news_scopes: {
+                    ...p,
+                    war: {
+                        global: Array.isArray(p?.war?.global) ? p.war.global : [],
+                        local: mergeScopedItems(p?.war?.local, e?.war?.local, 3)
+                    },
+                    local: {
+                        global: mergeScopedItems(p?.local?.global, e?.local?.global, 3),
+                        local: mergeScopedItems(p?.local?.local, e?.local?.local, 3)
+                    },
+                    economy: {
+                        global: Array.isArray(p?.economy?.global) ? p.economy.global : [],
+                        local: mergeScopedItems(p?.economy?.local, e?.economy?.local, 3)
+                    },
+                    ai: p?.ai || { global: [], local: [] },
+                    tech: p?.tech || { global: [], local: [] }
+                }
+            };
+            return merged;
+        }
+
+        function getStaticArabicFallback(category) {
+            const rows = STATIC_LOCAL_FALLBACK[category] || [];
+            const mapped = mapEmergencyItems(rows, category, 'local');
+            return mapped.slice(0, 6);
+        }
+
+        function buildImmediateFallbackPayload() {
+            const baseNews = APP_STATE.latestPayload?.news || { war: [], local: [], economy: [], legal: [], ai: [], tech: [], aihub: [] };
+            const baseScopes = APP_STATE.latestPayload?.news_scopes || {};
+            return {
+                ok: true,
+                news: baseNews,
+                news_scopes: {
+                    war: {
+                        global: Array.isArray(baseScopes?.war?.global) ? baseScopes.war.global : [],
+                        local: getStaticArabicFallback('war')
+                    },
+                    local: {
+                        global: Array.isArray(baseScopes?.local?.global) ? baseScopes.local.global : [],
+                        local: getStaticArabicFallback('local')
+                    },
+                    economy: {
+                        global: Array.isArray(baseScopes?.economy?.global) ? baseScopes.economy.global : [],
+                        local: getStaticArabicFallback('economy')
+                    },
+                    ai: baseScopes?.ai || { global: [], local: [] },
+                    tech: baseScopes?.tech || { global: [], local: [] }
+                },
+                aihub_sections: APP_STATE.latestPayload?.aihub_sections || { announcements: [], tools: [], community: [], tutorials: [] },
+                source: 'client-static-local-fallback'
+            };
+        }
+
         function renderMergedTabs(news, payload) {
             const scoped = payload?.news_scopes || {};
             const warScoped = ensureScopedPair(scoped, 'war', news?.war || []);
@@ -1160,9 +1936,19 @@
             const aiScoped = ensureScopedPair(scoped, 'ai', news?.ai || []);
             const techScoped = ensureScopedPair(scoped, 'tech', news?.tech || []);
 
-            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_local, localScoped.local, 'sky', 'لا توجد أخبار عربية محلية حالياً.');
-            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_war, warScoped.local, 'sky', 'لا توجد أخبار جيوسياسية عربية حالياً.');
-            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_economy, economyScoped.local, 'sky', 'لا توجد أخبار اقتصادية عربية حالياً.');
+            const arabicLocalSafe = Array.isArray(localScoped.local) && localScoped.local.length
+                ? localScoped.local
+                : getStaticArabicFallback('local');
+            const arabicWarSafe = Array.isArray(warScoped.local) && warScoped.local.length
+                ? warScoped.local
+                : getStaticArabicFallback('war');
+            const arabicEconomySafe = Array.isArray(economyScoped.local) && economyScoped.local.length
+                ? economyScoped.local
+                : getStaticArabicFallback('economy');
+
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_local, arabicLocalSafe, 'sky', 'لا توجد أخبار عربية محلية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_war, arabicWarSafe, 'sky', 'لا توجد أخبار جيوسياسية عربية حالياً.');
+            renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.arabic_economy, arabicEconomySafe, 'sky', 'لا توجد أخبار اقتصادية عربية حالياً.');
 
             renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_war, warScoped.global, 'red', 'لا توجد أخبار جيوسياسية عالمية حالياً.');
             renderNewsList(DYNAMIC_CONTAINER_BY_CATEGORY.global_economy, economyScoped.global, 'emerald', 'لا توجد أخبار اقتصادية عالمية حالياً.');
@@ -1220,13 +2006,42 @@
 
         async function loadNews(force = false) {
             try {
+                if (!APP_STATE.latestPayload) {
+                    const firstFallback = buildImmediateFallbackPayload();
+                    APP_STATE.latestPayload = firstFallback;
+                    renderMergedTabs(firstFallback.news, firstFallback);
+                    renderTicker(firstFallback.news);
+                }
+
+                if (!APP_STATE.apiReady && APP_STATE.lastApiFailureAt && (Date.now() - APP_STATE.lastApiFailureAt < API_RETRY_COOLDOWN_MS)) {
+                    const quickFallback = buildImmediateFallbackPayload();
+                    APP_STATE.latestPayload = quickFallback;
+                    renderMergedTabs(quickFallback.news, quickFallback);
+                    renderTicker(quickFallback.news);
+                    if (!force) return;
+                }
+
                 const response = await fetchApi(`/api/news${force ? '?force=1' : ''}`, {
                     method: 'GET',
                     headers: { 'Accept': 'application/json' }
                 });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const payload = await response.json();
+                let payload = await response.json();
                 if (!payload?.ok) throw new Error(payload?.error || 'تعذر جلب الأخبار');
+
+                const hasArabicLocal =
+                    Array.isArray(payload?.news_scopes?.local?.local) && payload.news_scopes.local.local.length > 0;
+                const hasArabicWar =
+                    Array.isArray(payload?.news_scopes?.war?.local) && payload.news_scopes.war.local.length > 0;
+                const hasArabicEconomy =
+                    Array.isArray(payload?.news_scopes?.economy?.local) && payload.news_scopes.economy.local.length > 0;
+
+                if (!hasArabicLocal || !hasArabicWar || !hasArabicEconomy) {
+                    const emergencyPayload = await buildEmergencyFallbackPayload().catch(() => null);
+                    if (emergencyPayload) {
+                        payload = ensureArabicScopeCoverage(payload, emergencyPayload);
+                    }
+                }
 
                 APP_STATE.latestPayload = payload;
                 renderMergedTabs(payload.news, payload);
@@ -1234,8 +2049,40 @@
                 loadMarketSnapshot();
             } catch (error) {
                 const track = document.getElementById('news-ticker-track');
+                const emergencyPayload = await buildEmergencyFallbackPayload().catch(() => null);
+                if (emergencyPayload) {
+                    APP_STATE.latestPayload = emergencyPayload;
+                    renderMergedTabs(emergencyPayload.news, emergencyPayload);
+                    renderTicker(emergencyPayload.news);
+                    if (track) {
+                        track.innerHTML = `<span class="ticker-chip"><i class="fas fa-triangle-exclamation text-amber-400"></i> وضع طوارئ: عرض RSS مباشر من المتصفح بسبب تعذر الاتصال بالخادم.</span>`;
+                    }
+                    return;
+                }
                 if (track) {
                     track.innerHTML = `<span class="ticker-chip"><i class="fas fa-triangle-exclamation text-red-400"></i> تعذر جلب الأخبار: ${escapeHtml(error.message)} | تحقق من تشغيل server.js</span>`;
+                }
+            }
+        }
+
+        async function manualRefreshNews() {
+            const btn = document.getElementById('refresh-news-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-60', 'cursor-not-allowed');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديث...';
+            }
+            try {
+                const optimistic = buildImmediateFallbackPayload();
+                APP_STATE.latestPayload = optimistic;
+                renderMergedTabs(optimistic.news, optimistic);
+                renderTicker(optimistic.news);
+                await loadNews(true);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-60', 'cursor-not-allowed');
+                    btn.innerHTML = '<i class="fas fa-rotate"></i> تحديث الأخبار';
                 }
             }
         }
@@ -1300,6 +2147,25 @@
             }
         }
 
+        function switchAdminEditorTab(tabName) {
+            const newsEditor = document.getElementById('admin-news-editor');
+            const homeEditor = document.getElementById('admin-home-editor');
+            const newsBtn = document.getElementById('admin-tab-news-btn');
+            const homeBtn = document.getElementById('admin-tab-home-btn');
+            if (!newsEditor || !homeEditor || !newsBtn || !homeBtn) return;
+
+            const activeNews = tabName !== 'home';
+            newsEditor.classList.toggle('hidden', !activeNews);
+            homeEditor.classList.toggle('hidden', activeNews);
+
+            newsBtn.className = activeNews
+                ? 'text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold px-3 py-2 rounded-md'
+                : 'text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold px-3 py-2 rounded-md';
+            homeBtn.className = !activeNews
+                ? 'text-xs bg-amber-700 hover:bg-amber-600 text-white font-bold px-3 py-2 rounded-md'
+                : 'text-xs bg-slate-700 hover:bg-slate-600 text-slate-100 font-bold px-3 py-2 rounded-md';
+        }
+
         function fileToDataUrl(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -1319,11 +2185,12 @@
         function renderAdminManualList(items) {
             const target = document.getElementById('admin-manual-news-list');
             if (!target) return;
-            if (!Array.isArray(items) || !items.length) {
+            const filtered = (Array.isArray(items) ? items : []).filter((item) => item?.category !== 'aihub');
+            if (!filtered.length) {
                 target.innerHTML = '<p class="text-xs text-slate-400">لا توجد أخبار مضافة يدويًا بعد.</p>';
                 return;
             }
-            target.innerHTML = items.slice(0, 10).map((item) => `
+            target.innerHTML = filtered.slice(0, 10).map((item) => `
                 <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
                     <div class="flex items-start justify-between gap-2 mb-1">
                         <h5 class="text-xs font-bold text-slate-100">${escapeHtml(item.title || '')}</h5>
@@ -1333,8 +2200,37 @@
                         <span class="text-[10px] text-slate-400">${escapeHtml(item.source || '')}</span>
                         <div class="flex items-center gap-2">
                             ${sourceButton(item)}
+                            ${videoButton(item)}
                             <button class="admin-delete-news-btn text-[10px] bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded" data-news-id="${escapeAttr(item.id || '')}">حذف</button>
                         </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAdminAiHubList(items) {
+            const target = document.getElementById('admin-home-list');
+            if (!target) return;
+            const filtered = (Array.isArray(items) ? items : []).filter((item) => item?.category === 'aihub');
+            if (!filtered.length) {
+                target.innerHTML = '<p class="text-xs text-slate-400">لا توجد عناصر في الرئيسية حتى الآن.</p>';
+                return;
+            }
+            target.innerHTML = filtered.slice(0, 20).map((item) => `
+                <div class="bg-slate-800 border border-amber-700/40 rounded-lg p-3">
+                    <div class="flex items-start justify-between gap-2 mb-1">
+                        <h5 class="text-xs font-bold text-slate-100">${escapeHtml(item.title || '')}</h5>
+                        <span class="text-[10px] text-amber-300">${escapeHtml(item.aihub_section || 'announcements')}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300 mb-2">${escapeHtml(item.summary || '')}</p>
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            ${sourceButton(item)}
+                            ${videoButton(item)}
+                            ${pdfButton(item)}
+                            ${actionButton(item)}
+                        </div>
+                        <button class="admin-delete-news-btn text-[10px] bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded" data-news-id="${escapeAttr(item.id || '')}">حذف</button>
                     </div>
                 </div>
             `).join('');
@@ -1343,15 +2239,18 @@
         async function deleteManualNews(id) {
             if (!id) return;
             setText('admin-add-status', 'جارٍ حذف الخبر...', 'text-xs text-slate-300 mt-3');
+            setText('admin-home-status', 'جارٍ حذف العنصر...', 'text-xs text-slate-300 mt-3');
             try {
                 await apiJson('/api/admin/news/delete', {
                     method: 'POST',
                     body: JSON.stringify({ id })
                 }, true);
                 setText('admin-add-status', 'تم حذف الخبر.', 'text-xs text-emerald-300 mt-3');
+                setText('admin-home-status', 'تم حذف العنصر.', 'text-xs text-emerald-300 mt-3');
                 await Promise.all([refreshAdminManualList(), loadNews(false)]);
             } catch (error) {
                 setText('admin-add-status', `تعذر حذف الخبر: ${error.message}`, 'text-xs text-red-300 mt-3');
+                setText('admin-home-status', `تعذر حذف العنصر: ${error.message}`, 'text-xs text-red-300 mt-3');
             }
         }
 
@@ -1359,9 +2258,82 @@
             try {
                 const payload = await apiJson('/api/admin/news', { method: 'GET' }, true);
                 renderAdminManualList(payload.items || []);
+                renderAdminAiHubList(payload.items || []);
             } catch (error) {
                 renderAdminManualList([]);
+                renderAdminAiHubList([]);
                 setText('admin-add-status', `تعذر تحميل قائمة الأخبار اليدوية: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function refreshAdminAiHubList() {
+            try {
+                const payload = await apiJson('/api/admin/news', { method: 'GET' }, true);
+                renderAdminAiHubList(payload.items || []);
+            } catch (error) {
+                renderAdminAiHubList([]);
+                setText('admin-home-status', `تعذر تحميل عناصر الرئيسية: ${error.message}`, 'text-xs text-red-300 mt-3');
+            }
+        }
+
+        async function addAiHubHomeItem() {
+            const section = document.getElementById('admin-home-section')?.value || 'announcements';
+            const title = String(document.getElementById('admin-home-title')?.value || '').trim();
+            const summary = String(document.getElementById('admin-home-summary')?.value || '').trim();
+            const source = String(document.getElementById('admin-home-source')?.value || '').trim() || 'AI HUB';
+            let sourceUrl = String(document.getElementById('admin-home-source-url')?.value || '').trim();
+            let imageUrl = String(document.getElementById('admin-home-image-url')?.value || '').trim();
+            const videoUrl = String(document.getElementById('admin-home-video-url')?.value || '').trim();
+            const pdfUrl = String(document.getElementById('admin-home-pdf-url')?.value || '').trim();
+            const ctaUrl = String(document.getElementById('admin-home-cta-url')?.value || '').trim();
+            const ctaLabel = String(document.getElementById('admin-home-cta-label')?.value || '').trim();
+            const isFeatured = Boolean(document.getElementById('admin-home-featured')?.checked);
+            const imageFile = document.getElementById('admin-home-image-file')?.files?.[0];
+
+            if (!sourceUrl) {
+                sourceUrl = ctaUrl || videoUrl || pdfUrl;
+            }
+
+            if (!imageUrl && imageFile) {
+                imageUrl = await fileToDataUrl(imageFile);
+            }
+
+            setText('admin-home-status', 'جارٍ إضافة عنصر الرئيسية...', 'text-xs text-slate-300 mt-3');
+            try {
+                await apiJson('/api/admin/news', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        category: 'aihub',
+                        scope: 'local',
+                        aihub_section: section,
+                        title,
+                        summary,
+                        source,
+                        source_url: sourceUrl,
+                        image_url: imageUrl,
+                        video_url: videoUrl,
+                        pdf_url: pdfUrl,
+                        cta_url: ctaUrl,
+                        cta_label: ctaLabel,
+                        is_featured: isFeatured,
+                        published_at: new Date().toISOString(),
+                        auto_extract: (!title || !summary || !source)
+                    })
+                }, true);
+
+                ['admin-home-title', 'admin-home-summary', 'admin-home-source', 'admin-home-source-url', 'admin-home-image-url', 'admin-home-video-url', 'admin-home-pdf-url', 'admin-home-cta-url', 'admin-home-cta-label'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                const homeFile = document.getElementById('admin-home-image-file');
+                if (homeFile) homeFile.value = '';
+                const homeFeatured = document.getElementById('admin-home-featured');
+                if (homeFeatured) homeFeatured.checked = false;
+
+                setText('admin-home-status', 'تمت إضافة العنصر بنجاح في الرئيسية.', 'text-xs text-emerald-300 mt-3');
+                await Promise.all([loadNews(false), refreshAdminAiHubList()]);
+            } catch (error) {
+                setText('admin-home-status', `فشل إضافة عنصر الرئيسية: ${error.message}`, 'text-xs text-red-300 mt-3');
             }
         }
 
@@ -1419,10 +2391,10 @@
                     body: JSON.stringify({ password })
                 });
                 APP_STATE.adminToken = payload.token;
-                localStorage.setItem('aihub_admin_token', payload.token);
                 setAdminAuthState(true);
                 setText('admin-add-status', 'يمكنك الآن إضافة الأخبار.', 'text-xs text-emerald-300 mt-3');
                 await refreshAdminManualList();
+                await refreshAdminAiHubList();
                 await refreshAdminAIStatus();
             } catch (error) {
                 const apiHint = APP_STATE.apiBase ? ` | API: ${APP_STATE.apiBase}` : '';
@@ -1435,7 +2407,6 @@
                 await apiJson('/api/admin/logout', { method: 'POST' }, true);
             } catch (_) {}
             APP_STATE.adminToken = '';
-            localStorage.removeItem('aihub_admin_token');
             setAdminAuthState(false);
             setText('admin-login-status', 'تم تسجيل الخروج.', 'text-xs text-slate-300 mt-3');
         }
@@ -1477,6 +2448,7 @@
             const source = String(document.getElementById('admin-source')?.value || '').trim();
             const sourceUrl = String(document.getElementById('admin-source-url')?.value || '').trim();
             let imageUrl = String(document.getElementById('admin-image-url')?.value || '').trim();
+            const videoUrl = String(document.getElementById('admin-video-url')?.value || '').trim();
             const imageFile = document.getElementById('admin-image-file')?.files?.[0];
 
             if (!imageUrl && imageFile) {
@@ -1497,11 +2469,12 @@
                         source,
                         source_url: sourceUrl,
                         image_url: imageUrl,
+                        video_url: videoUrl,
                         published_at: new Date().toISOString()
                     })
                 }, true);
 
-                ['admin-title', 'admin-summary', 'admin-source', 'admin-source-url', 'admin-image-url'].forEach((id) => {
+                ['admin-title', 'admin-summary', 'admin-source', 'admin-source-url', 'admin-image-url', 'admin-video-url'].forEach((id) => {
                     const el = document.getElementById(id);
                     if (el) el.value = '';
                 });
@@ -1529,19 +2502,27 @@
             const statusAIBtn = document.getElementById('admin-ai-status-btn');
             const refreshSourcesBtn = document.getElementById('admin-refresh-sources-btn');
             const manualList = document.getElementById('admin-manual-news-list');
+            const homeList = document.getElementById('admin-home-list');
             const apiBaseInput = document.getElementById('api-base-input');
             const apiBaseSaveBtn = document.getElementById('api-base-save-btn');
             const viewCardsBtn = document.getElementById('view-cards-btn');
             const viewTimelineBtn = document.getElementById('view-timeline-btn');
+            const refreshNewsBtn = document.getElementById('refresh-news-btn');
+            const adminTabNewsBtn = document.getElementById('admin-tab-news-btn');
+            const adminTabHomeBtn = document.getElementById('admin-tab-home-btn');
+            const adminHomeAddBtn = document.getElementById('admin-home-add-btn');
+            const adminHomeRefreshBtn = document.getElementById('admin-home-refresh-btn');
 
             if (openBtn) {
                 openBtn.addEventListener('click', async () => {
                     openAdminModal();
                     setAdminAuthState(Boolean(APP_STATE.adminToken));
+                    switchAdminEditorTab('news');
                     toggleAIHubSectionInput();
                     if (apiBaseInput) apiBaseInput.value = APP_STATE.apiBase || '';
                     if (APP_STATE.adminToken) {
                         await refreshAdminManualList();
+                        await refreshAdminAiHubList();
                         await refreshAdminAIStatus();
                     }
                 });
@@ -1573,9 +2554,22 @@
             }
             if (viewCardsBtn) viewCardsBtn.addEventListener('click', () => setViewMode('cards'));
             if (viewTimelineBtn) viewTimelineBtn.addEventListener('click', () => setViewMode('timeline'));
+            if (refreshNewsBtn) refreshNewsBtn.addEventListener('click', manualRefreshNews);
+            if (adminTabNewsBtn) adminTabNewsBtn.addEventListener('click', () => switchAdminEditorTab('news'));
+            if (adminTabHomeBtn) adminTabHomeBtn.addEventListener('click', () => switchAdminEditorTab('home'));
+            if (adminHomeAddBtn) adminHomeAddBtn.addEventListener('click', addAiHubHomeItem);
+            if (adminHomeRefreshBtn) adminHomeRefreshBtn.addEventListener('click', refreshAdminAiHubList);
 
             if (manualList) {
                 manualList.addEventListener('click', (event) => {
+                    const btn = event.target.closest('.admin-delete-news-btn');
+                    if (!btn) return;
+                    const id = btn.getAttribute('data-news-id');
+                    deleteManualNews(id);
+                });
+            }
+            if (homeList) {
+                homeList.addEventListener('click', (event) => {
                     const btn = event.target.closest('.admin-delete-news-btn');
                     if (!btn) return;
                     const id = btn.getAttribute('data-news-id');
@@ -1598,7 +2592,10 @@
         setInterval(updateClock, 1000);
         updateClock();
         initAdminPanel();
-        switchMainTab('arabic');
+        initInstallExperience();
+        registerServiceWorker();
+        switchMainTab('aihub');
+        switchAIHubSubTab('aihub-announcements');
         switchArabicSubTab('arabic-local');
         switchGlobalSubTab('global-war');
         switchTechAiSubTab('techai-ai');
